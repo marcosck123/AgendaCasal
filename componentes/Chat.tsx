@@ -114,11 +114,47 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
         tipo: 'audio',
         duracao,
       });
+
+      // Limpeza automática: deleta os mais antigos se passar de 50MB
+      await limparAudiosSeLimiteExcedido();
     } catch {
       alert('Erro ao enviar áudio. Verifique se o bucket "audios" foi criado no Supabase Storage.');
     }
     setUploadando(false);
     setTempoGravacao(0);
+  };
+
+  const limparAudiosSeLimiteExcedido = async () => {
+    const LIMITE_BYTES = 50 * 1024 * 1024; // 50MB
+
+    // Lista todos os arquivos do bucket
+    const { data: arquivos } = await supabase.storage.from('audios').list('', {
+      limit: 1000,
+      sortBy: { column: 'created_at', order: 'asc' }, // mais antigos primeiro
+    });
+    if (!arquivos || arquivos.length === 0) return;
+
+    // Soma o tamanho total
+    const totalBytes = arquivos.reduce((acc, f) => acc + (f.metadata?.size ?? 0), 0);
+    if (totalBytes <= LIMITE_BYTES) return;
+
+    // Deleta os mais antigos até voltar abaixo do limite
+    let restante = totalBytes;
+    const paraExcluir: string[] = [];
+
+    for (const arquivo of arquivos) {
+      if (restante <= LIMITE_BYTES) break;
+      paraExcluir.push(arquivo.name);
+      restante -= arquivo.metadata?.size ?? 0;
+    }
+
+    if (paraExcluir.length > 0) {
+      await supabase.storage.from('audios').remove(paraExcluir);
+      // Remove também do banco as mensagens cujas URLs contêm esses arquivos
+      for (const nome of paraExcluir) {
+        await supabase.from('mensagens').delete().like('conteudo', `%${nome}%`);
+      }
+    }
   };
 
   const cancelarGravacao = () => {
