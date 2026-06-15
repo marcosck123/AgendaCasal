@@ -32,3 +32,8 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #78716c;
 }
+
+/* Respeita a área segura inferior (barra de gestos do celular) */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

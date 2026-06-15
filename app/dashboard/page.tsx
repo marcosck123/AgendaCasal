@@ -63,7 +63,7 @@ export default function Dashboard() {
         <div className="flex">
           <button
             onClick={() => setAba('agenda')}
-            className={`flex-1 flex flex-col items-center gap-1 py-3 transition-colors ${
+            className={`relative flex-1 flex flex-col items-center gap-1 py-3 transition-colors ${
               aba === 'agenda' ? 'text-stone-800' : 'text-stone-400'
             }`}
           >
@@ -75,7 +75,7 @@ export default function Dashboard() {
           </button>
           <button
             onClick={() => setAba('conversa')}
-            className={`flex-1 flex flex-col items-center gap-1 py-3 transition-colors ${
+            className={`relative flex-1 flex flex-col items-center gap-1 py-3 transition-colors ${
               aba === 'conversa' ? 'text-stone-800' : 'text-stone-400'
             }`}
           >

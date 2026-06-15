@@ -25,15 +25,5 @@ export default function Home() {
 
   if (user) return null
 
-  return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-stone-50 to-amber-50 p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-stone-800 mb-2">AgendaCasal 💑</h1>
-          <p className="text-stone-500">Seu espaço compartilhado com a pessoa amada</p>
-        </div>
-        <Auth />
-      </div>
-    </main>
-  )
+  return <Auth />
 }
