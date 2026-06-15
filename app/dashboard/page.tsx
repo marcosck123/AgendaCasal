@@ -70,9 +70,9 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {activeTab === 'lembretes' && <Reminders />}
-        {activeTab === 'chat' && <Chat />}
-        {activeTab === 'audios' && <AudioRecorder />}
+        {activeTab === 'lembretes' && <Reminders userId={user.id} />}
+        {activeTab === 'chat' && <Chat userId={user.id} nomeUsuario={user.user_metadata?.nome || user.email?.split('@')[0] || 'Amor'} />}
+        {activeTab === 'audios' && <AudioRecorder userId={user.id} />}
       </div>
     </main>
   )
