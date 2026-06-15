@@ -17,6 +17,22 @@ self.addEventListener('activate', (e) => {
   self.clients.claim();
 });
 
+self.addEventListener('push', (e) => {
+  const data = e.data?.json() ?? { title: 'AgendaCasal', body: 'Novo lembrete!' };
+  e.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil(clients.openWindow('/dashboard'));
+});
+
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
