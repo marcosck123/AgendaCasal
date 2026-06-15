@@ -3,12 +3,32 @@
 @tailwind utilities;
 
 :root {
-  --background: #fff5f7;
-  --foreground: #3d1a20;
+  --background: #faf7f2;
+  --foreground: #292524;
 }
 
 body {
-  background: var(--background);
+  background: linear-gradient(135deg, #faf7f2 0%, #f0ebe0 100%);
   color: var(--foreground);
   font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+}
+
+/* Custom scrollbar in stone colors */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f5f0e8;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #a8a29e;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #78716c;
 }

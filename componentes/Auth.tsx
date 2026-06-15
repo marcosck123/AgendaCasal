@@ -41,23 +41,23 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md border border-stone-100">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="text-5xl mb-3">💑</div>
-          <h1 className="text-3xl font-bold text-rose-600">AgendaCasal</h1>
-          <p className="text-rose-400 mt-1">O espaço do nosso amor ❤️</p>
+          <h1 className="text-3xl font-bold text-stone-800">AgendaCasal</h1>
+          <p className="text-stone-500 mt-1">O espaço do nosso amor ❤️</p>
         </div>
 
         {/* Toggle */}
-        <div className="flex bg-rose-50 rounded-xl p-1 mb-6">
+        <div className="flex bg-amber-50 rounded-xl p-1 mb-6 border border-amber-100">
           <button
             onClick={() => { setModo('login'); setErro(''); setSucesso(''); }}
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
               modo === 'login'
-                ? 'bg-rose-500 text-white shadow-sm'
-                : 'text-rose-400 hover:text-rose-500'
+                ? 'bg-stone-700 text-white shadow-sm'
+                : 'text-stone-500 hover:text-stone-700'
             }`}
           >
             Entrar
@@ -66,8 +66,8 @@ export default function Auth() {
             onClick={() => { setModo('cadastro'); setErro(''); setSucesso(''); }}
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
               modo === 'cadastro'
-                ? 'bg-rose-500 text-white shadow-sm'
-                : 'text-rose-400 hover:text-rose-500'
+                ? 'bg-stone-700 text-white shadow-sm'
+                : 'text-stone-500 hover:text-stone-700'
             }`}
           >
             Criar conta
@@ -78,7 +78,7 @@ export default function Auth() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {modo === 'cadastro' && (
             <div>
-              <label className="block text-sm font-medium text-rose-700 mb-1">
+              <label className="block text-sm font-medium text-stone-700 mb-1">
                 Seu nome
               </label>
               <input
@@ -86,14 +86,14 @@ export default function Auth() {
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
                 placeholder="Como quer ser chamado(a)?"
-                className="w-full px-4 py-3 border-2 border-rose-200 rounded-xl focus:outline-none focus:border-rose-400 text-gray-700 placeholder-rose-300"
+                className="w-full px-4 py-3 border-2 border-stone-200 rounded-xl focus:outline-none focus:border-stone-400 text-stone-800 placeholder-stone-300"
                 required
               />
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-rose-700 mb-1">
+            <label className="block text-sm font-medium text-stone-700 mb-1">
               E-mail
             </label>
             <input
@@ -101,13 +101,13 @@ export default function Auth() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="seu@email.com"
-              className="w-full px-4 py-3 border-2 border-rose-200 rounded-xl focus:outline-none focus:border-rose-400 text-gray-700 placeholder-rose-300"
+              className="w-full px-4 py-3 border-2 border-stone-200 rounded-xl focus:outline-none focus:border-stone-400 text-stone-800 placeholder-stone-300"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-rose-700 mb-1">
+            <label className="block text-sm font-medium text-stone-700 mb-1">
               Senha
             </label>
             <input
@@ -115,7 +115,7 @@ export default function Auth() {
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-4 py-3 border-2 border-rose-200 rounded-xl focus:outline-none focus:border-rose-400 text-gray-700 placeholder-rose-300"
+              className="w-full px-4 py-3 border-2 border-stone-200 rounded-xl focus:outline-none focus:border-stone-400 text-stone-800 placeholder-stone-300"
               required
               minLength={6}
             />
@@ -136,17 +136,17 @@ export default function Auth() {
           <button
             type="submit"
             disabled={carregando}
-            className="w-full py-3 bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white font-semibold rounded-xl transition-colors shadow-md hover:shadow-lg"
+            className="w-full py-3 bg-stone-700 hover:bg-stone-800 disabled:bg-stone-300 text-white font-semibold rounded-xl transition-colors shadow-md hover:shadow-lg"
           >
             {carregando
               ? 'Aguarde...'
               : modo === 'login'
               ? 'Entrar no nosso espaço 💕'
-              : 'Criar nossa conta 🌹'}
+              : 'Criar nossa conta 🌿'}
           </button>
         </form>
 
-        <p className="text-center text-rose-300 text-xs mt-6">
+        <p className="text-center text-stone-400 text-xs mt-6">
           Feito com amor para vocês dois ❤️
         </p>
       </div>

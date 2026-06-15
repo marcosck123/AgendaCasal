@@ -51,10 +51,10 @@ export default function Reminders({ userId }: RemindersProps) {
     <div className="space-y-4">
       {/* Header com botão */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-rose-700">📅 Nossos Lembretes</h2>
+        <h2 className="text-xl font-bold text-stone-800">📅 Nossos Lembretes</h2>
         <button
           onClick={() => setMostrarForm(!mostrarForm)}
-          className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white text-sm rounded-xl transition-colors shadow-sm"
+          className="px-4 py-2 bg-stone-700 hover:bg-stone-800 text-white text-sm rounded-xl transition-colors shadow-sm"
         >
           {mostrarForm ? '✕ Cancelar' : '+ Novo lembrete'}
         </button>
@@ -64,15 +64,15 @@ export default function Reminders({ userId }: RemindersProps) {
       {mostrarForm && (
         <form
           onSubmit={handleAdd}
-          className="bg-rose-50 border border-rose-200 rounded-2xl p-5 space-y-3"
+          className="bg-amber-50 border border-amber-200 rounded-2xl p-5 space-y-3"
         >
-          <h3 className="font-semibold text-rose-700">✨ Novo lembrete</h3>
+          <h3 className="font-semibold text-stone-700">✨ Novo lembrete</h3>
           <input
             type="text"
             value={titulo}
             onChange={(e) => setTitulo(e.target.value)}
             placeholder="Título do lembrete"
-            className="w-full px-4 py-2 border-2 border-rose-200 rounded-xl focus:outline-none focus:border-rose-400 text-gray-700"
+            className="w-full px-4 py-2 border-2 border-stone-200 rounded-xl focus:outline-none focus:border-stone-400 text-stone-800"
             required
           />
           <textarea
@@ -80,20 +80,20 @@ export default function Reminders({ userId }: RemindersProps) {
             onChange={(e) => setDescricao(e.target.value)}
             placeholder="Descrição (opcional)"
             rows={3}
-            className="w-full px-4 py-2 border-2 border-rose-200 rounded-xl focus:outline-none focus:border-rose-400 text-gray-700 resize-none"
+            className="w-full px-4 py-2 border-2 border-stone-200 rounded-xl focus:outline-none focus:border-stone-400 text-stone-800 resize-none"
           />
           <input
             type="date"
             value={data}
             onChange={(e) => setData(e.target.value)}
-            className="w-full px-4 py-2 border-2 border-rose-200 rounded-xl focus:outline-none focus:border-rose-400 text-gray-700"
+            className="w-full px-4 py-2 border-2 border-stone-200 rounded-xl focus:outline-none focus:border-stone-400 text-stone-800"
             required
           />
           {erro && <p className="text-red-500 text-sm">⚠️ {erro}</p>}
           <button
             type="submit"
             disabled={enviando}
-            className="w-full py-2 bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white font-semibold rounded-xl transition-colors"
+            className="w-full py-2 bg-stone-700 hover:bg-stone-800 disabled:bg-stone-300 text-white font-semibold rounded-xl transition-colors"
           >
             {enviando ? 'Salvando...' : 'Salvar lembrete 💕'}
           </button>
@@ -102,9 +102,9 @@ export default function Reminders({ userId }: RemindersProps) {
 
       {/* Lista */}
       {loading ? (
-        <div className="text-center py-8 text-rose-400">Carregando lembretes... 💭</div>
+        <div className="text-center py-8 text-stone-400">Carregando lembretes... 💭</div>
       ) : reminders.length === 0 ? (
-        <div className="text-center py-12 text-rose-300">
+        <div className="text-center py-12 text-stone-400">
           <div className="text-4xl mb-3">📋</div>
           <p>Nenhum lembrete ainda</p>
           <p className="text-sm mt-1">Adicione datas especiais para não esquecer!</p>
@@ -113,25 +113,25 @@ export default function Reminders({ userId }: RemindersProps) {
         <div className="space-y-4">
           {lembretesFuturos.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-rose-400 uppercase tracking-wide mb-2">
+              <p className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-2">
                 Próximos
               </p>
               <div className="space-y-2">
                 {lembretesFuturos.map((r) => (
                   <div
                     key={r.id}
-                    className="bg-white border-l-4 border-rose-400 rounded-xl p-4 shadow-sm flex justify-between items-start"
+                    className="bg-white border-l-4 border-stone-400 rounded-xl p-4 shadow-sm flex justify-between items-start"
                   >
                     <div>
-                      <p className="font-semibold text-gray-800">{r.titulo}</p>
+                      <p className="font-semibold text-stone-800">{r.titulo}</p>
                       {r.descricao && (
-                        <p className="text-sm text-gray-500 mt-0.5">{r.descricao}</p>
+                        <p className="text-sm text-stone-500 mt-0.5">{r.descricao}</p>
                       )}
-                      <p className="text-xs text-rose-500 mt-1">📅 {formatarData(r.data)}</p>
+                      <p className="text-xs text-stone-500 mt-1">📅 {formatarData(r.data)}</p>
                     </div>
                     <button
                       onClick={() => deleteReminder(r.id)}
-                      className="text-rose-300 hover:text-rose-500 transition-colors ml-3"
+                      className="text-stone-300 hover:text-stone-500 transition-colors ml-3"
                       title="Excluir"
                     >
                       🗑️
@@ -144,22 +144,22 @@ export default function Reminders({ userId }: RemindersProps) {
 
           {lembretesPassados.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+              <p className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-2">
                 Passados
               </p>
               <div className="space-y-2 opacity-60">
                 {lembretesPassados.map((r) => (
                   <div
                     key={r.id}
-                    className="bg-gray-50 border-l-4 border-gray-300 rounded-xl p-4 shadow-sm flex justify-between items-start"
+                    className="bg-stone-50 border-l-4 border-stone-300 rounded-xl p-4 shadow-sm flex justify-between items-start"
                   >
                     <div>
-                      <p className="font-semibold text-gray-600 line-through">{r.titulo}</p>
-                      <p className="text-xs text-gray-400 mt-1">📅 {formatarData(r.data)}</p>
+                      <p className="font-semibold text-stone-500 line-through">{r.titulo}</p>
+                      <p className="text-xs text-stone-400 mt-1">📅 {formatarData(r.data)}</p>
                     </div>
                     <button
                       onClick={() => deleteReminder(r.id)}
-                      className="text-gray-300 hover:text-red-400 transition-colors ml-3"
+                      className="text-stone-300 hover:text-red-400 transition-colors ml-3"
                     >
                       🗑️
                     </button>
