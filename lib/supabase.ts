@@ -29,6 +29,8 @@ export type Mensagem = {
   casal_id: string;
   enviado_por: string;
   nome_remetente: string;
+  tipo: 'texto' | 'audio';
+  duracao?: number;
   created_at: string;
 };
 
