@@ -24,9 +24,9 @@ const CATEGORIAS: { value: Categoria; label: string; emoji: string; cor: string 
 ];
 
 const PARA_QUEM: { value: ParaQuem; label: string; emoji: string }[] = [
-  { value: 'os_dois', label: 'Os dois',    emoji: '💑' },
-  { value: 'so_eu',   label: 'Só eu',      emoji: '🙋' },
-  { value: 'so_amor', label: 'Só meu amor', emoji: '💌' },
+  { value: 'os_dois', label: 'Os dois', emoji: '💑' },
+  { value: 'so_eu',   label: 'Marcos',  emoji: '🙋' },
+  { value: 'so_amor', label: 'Ana',     emoji: '💌' },
 ];
 
 const COR_CATEGORIA: Record<string, string> = {
