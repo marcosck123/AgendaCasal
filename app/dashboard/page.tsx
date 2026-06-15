@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/ganchos/useAuth';
 import Calendar from '@/componentes/Calendar';
 import Chat from '@/componentes/Chat';
+import NotificationSetup from '@/componentes/NotificationSetup';
 
 type Aba = 'agenda' | 'conversa';
 
@@ -45,6 +46,8 @@ export default function Dashboard() {
           Sair
         </button>
       </header>
+
+      <NotificationSetup userId={user.id} />
 
       {/* Conteúdo principal — ocupa todo o espaço restante */}
       <main className="flex-1 overflow-hidden">
