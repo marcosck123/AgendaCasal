@@ -1,0 +1,185 @@
+========================================
+  GUIA COMPLETO - AGENDACASAL 💕
+========================================
+
+TECNOLOGIAS USADAS:
+  - Next.js 14 (framework React)
+  - Supabase (banco de dados + autenticação + tempo real)
+  - Firebase Storage (armazenamento de áudios)
+  - Tailwind CSS (estilização)
+  - Vercel (hospedagem gratuita)
+
+CUSTO TOTAL: R$ 0 (plano gratuito de todos os serviços)
+
+========================================
+  PASSO 1 — CONFIGURAR SUPABASE
+========================================
+
+1. Acesse https://supabase.com e crie uma conta
+2. Clique em "New Project"
+   - Nome: lembretes-casal
+   - Senha do banco: escolha uma forte e ANOTE
+   - Região: South America (São Paulo)
+3. Aguarde o projeto ser criado (~2 min)
+4. Vá em Settings > API e copie:
+   - Project URL → NEXT_PUBLIC_SUPABASE_URL
+   - anon public key → NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+5. Vá em SQL Editor e execute este SQL para criar as tabelas:
+
+-- Tabela de lembretes
+CREATE TABLE lembretes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  titulo TEXT NOT NULL,
+  descricao TEXT,
+  data_lembrete TIMESTAMPTZ,
+  criado_por UUID REFERENCES auth.users(id),
+  criado_em TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Tabela de mensagens do chat
+CREATE TABLE mensagens (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  conteudo TEXT NOT NULL,
+  autor_id UUID REFERENCES auth.users(id),
+  autor_email TEXT,
+  criado_em TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Tabela de áudios
+CREATE TABLE audios (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  nome TEXT NOT NULL,
+  url TEXT NOT NULL,
+  enviado_por UUID REFERENCES auth.users(id),
+  enviado_em TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Habilitar RLS (Row Level Security)
+ALTER TABLE lembretes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE mensagens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audios ENABLE ROW LEVEL SECURITY;
+
+-- Políticas: usuários autenticados podem ler e escrever tudo
+CREATE POLICY "Acesso autenticado" ON lembretes FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Acesso autenticado" ON mensagens FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Acesso autenticado" ON audios FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Habilitar Realtime nas tabelas
+ALTER PUBLICATION supabase_realtime ADD TABLE mensagens;
+ALTER PUBLICATION supabase_realtime ADD TABLE lembretes;
+
+========================================
+  PASSO 2 — CONFIGURAR FIREBASE STORAGE
+========================================
+
+1. Acesse https://console.firebase.google.com
+2. Clique em "Criar projeto"
+   - Nome: lembretes-casal
+   - Pode desativar o Google Analytics
+3. No painel, clique em "Storage" no menu lateral
+4. Clique em "Começar"
+   - Escolha modo de produção ou teste (teste é mais fácil pra começar)
+   - Região: southamerica-east1
+5. Vá em Configurações do projeto (ícone de engrenagem)
+6. Copie o "ID do projeto" → NEXT_PUBLIC_FIREBASE_PROJECT_ID
+7. O Storage Bucket é: seu-project-id.appspot.com → NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+
+8. Vá em Storage > Rules e atualize para:
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /audios/{allPaths=**} {
+      allow read, write: if true; // Simplifique pra teste
+    }
+  }
+}
+
+========================================
+  PASSO 3 — CONFIGURAR O PROJETO LOCAL
+========================================
+
+1. Clone ou baixe este projeto
+2. Na raiz, crie o arquivo .env.local com suas credenciais:
+
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=lembretes-casal
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=lembretes-casal.appspot.com
+
+3. Instale as dependências:
+   npm install
+
+4. Rode localmente:
+   npm run dev
+
+5. Abra http://localhost:3000 no navegador
+
+========================================
+  PASSO 4 — FAZER DEPLOY NA VERCEL
+========================================
+
+1. Faça push do código para um repositório no GitHub
+   (NÃO inclua o .env.local — ele já está no .gitignore)
+
+2. Acesse https://vercel.com e faça login com GitHub
+
+3. Clique em "Add New Project" e selecione seu repositório
+
+4. Em "Environment Variables", adicione as 4 variáveis do .env.local
+
+5. Clique em Deploy!
+
+6. Sua URL será algo como: https://lembretes-casal.vercel.app
+
+========================================
+  ESTRUTURA DO PROJETO
+========================================
+
+AgendaCasal/
+├── app/
+│   ├── globals.css          # Estilos globais
+│   ├── layout.tsx           # Layout raiz
+│   ├── page.tsx             # Página inicial (login)
+│   └── dashboard/
+│       └── page.tsx         # Painel principal
+├── componentes/
+│   ├── Auth.tsx             # Login e cadastro
+│   ├── Reminders.tsx        # Lista de lembretes
+│   ├── Chat.tsx             # Chat em tempo real
+│   └── AudioRecorder.tsx    # Gravador de áudios
+├── ganchos/
+│   ├── useAuth.ts           # Hook de autenticação
+│   └── useReminders.ts      # Hook de lembretes
+├── lib/
+│   ├── supabase.ts          # Cliente Supabase
+│   └── firebase.ts          # Cliente Firebase
+├── .env.local.example       # Exemplo de variáveis de ambiente
+├── .gitignore
+├── package.json
+├── tsconfig.json
+├── tailwind.config.ts
+└── next.config.js
+
+========================================
+  FUNCIONALIDADES
+========================================
+
+✅ Autenticação (login/cadastro com email e senha)
+✅ Lembretes compartilhados em tempo real
+✅ Chat em tempo real entre o casal
+✅ Gravação e envio de mensagens de áudio
+✅ Interface responsiva (funciona no celular!)
+✅ Tema romântico rosa/vermelho 💕
+
+========================================
+  DÚVIDAS?
+========================================
+
+- Supabase Docs: https://supabase.com/docs
+- Firebase Docs: https://firebase.google.com/docs/storage
+- Next.js Docs: https://nextjs.org/docs
+- Tailwind CSS: https://tailwindcss.com/docs
+
+Bora codeee! 💻💕
