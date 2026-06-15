@@ -13,11 +13,17 @@ export type UserProfile = {
   created_at: string;
 };
 
+export type Categoria = 'romantico' | 'aniversario' | 'consulta' | 'viagem' | 'outro';
+export type ParaQuem = 'os_dois' | 'so_eu' | 'so_amor';
+
 export type Lembrete = {
   id: string;
   titulo: string;
   descricao: string;
   data: string;
+  hora?: string;
+  categoria?: Categoria;
+  para_quem?: ParaQuem;
   casal_id: string;
   criado_por: string;
   created_at: string;

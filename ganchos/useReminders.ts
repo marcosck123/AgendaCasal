@@ -1,12 +1,21 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase, Lembrete } from '@/lib/supabase';
+import { supabase, Lembrete, Categoria, ParaQuem } from '@/lib/supabase';
+
+interface NovoLembrete {
+  titulo: string;
+  descricao: string;
+  data: string;
+  hora?: string;
+  categoria?: Categoria;
+  para_quem?: ParaQuem;
+}
 
 interface UseRemindersReturn {
   reminders: Lembrete[];
   loading: boolean;
-  addReminder: (titulo: string, descricao: string, data: string) => Promise<{ error: string | null }>;
+  addReminder: (lembrete: NovoLembrete) => Promise<{ error: string | null }>;
   deleteReminder: (id: string) => Promise<{ error: string | null }>;
 }
 
@@ -30,39 +39,22 @@ export function useReminders(userId: string | undefined, casalId?: string): UseR
 
   useEffect(() => {
     fetchReminders();
-
-    // Subscribe to realtime changes
     const channel = supabase
       .channel('lembretes-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'lembretes' },
-        () => {
-          fetchReminders();
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lembretes' }, () => {
+        fetchReminders();
+      })
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [fetchReminders]);
 
-  const addReminder = async (
-    titulo: string,
-    descricao: string,
-    data: string
-  ): Promise<{ error: string | null }> => {
+  const addReminder = async (lembrete: NovoLembrete): Promise<{ error: string | null }> => {
     if (!userId) return { error: 'Usuário não autenticado' };
-
     const { error } = await supabase.from('lembretes').insert({
-      titulo,
-      descricao,
-      data,
+      ...lembrete,
       criado_por: userId,
       casal_id: casalId ?? userId,
     });
-
     if (error) return { error: error.message };
     return { error: null };
   };

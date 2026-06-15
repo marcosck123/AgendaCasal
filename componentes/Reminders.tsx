@@ -22,7 +22,7 @@ export default function Reminders({ userId }: RemindersProps) {
     setEnviando(true);
     setErro('');
 
-    const { error } = await addReminder(titulo, descricao, data);
+    const { error } = await addReminder({ titulo, descricao, data });
     if (error) {
       setErro(error);
     } else {
