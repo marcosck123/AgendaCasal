@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '@/lib/firebase';
 import { supabase, Mensagem } from '@/lib/supabase';
 
 interface ChatProps {
@@ -97,11 +95,19 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
     setGravando(false);
 
     try {
-      const storageRef = ref(storage, `audios/${userId}/${Date.now()}.webm`);
-      await uploadBytes(storageRef, blob);
-      const url = await getDownloadURL(storageRef);
+      const nomeArquivo = `${userId}/${Date.now()}.webm`;
+      const { error: uploadError } = await supabase.storage
+        .from('audios')
+        .upload(nomeArquivo, blob, { contentType: 'audio/webm' });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('audios')
+        .getPublicUrl(nomeArquivo);
+
       await supabase.from('mensagens').insert({
-        conteudo: url,
+        conteudo: urlData.publicUrl,
         enviado_por: userId,
         nome_remetente: nomeUsuario,
         casal_id: userId,
@@ -109,7 +115,7 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
         duracao,
       });
     } catch {
-      alert('Erro ao enviar áudio.');
+      alert('Erro ao enviar áudio. Verifique se o bucket "audios" foi criado no Supabase Storage.');
     }
     setUploadando(false);
     setTempoGravacao(0);
