@@ -50,7 +50,7 @@ export default function Dashboard() {
       <main className="flex-1 overflow-hidden">
         {aba === 'agenda' && (
           <div className="h-full overflow-y-auto px-3 py-3">
-            <Calendar userId={user.id} />
+            <Calendar userId={user.id} nomeUsuario={nomeUsuario} />
           </div>
         )}
         {aba === 'conversa' && (

@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '@/lib/firebase';
 import { supabase, Mensagem } from '@/lib/supabase';
 
 interface ChatProps {
@@ -97,22 +95,66 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
     setGravando(false);
 
     try {
-      const storageRef = ref(storage, `audios/${userId}/${Date.now()}.webm`);
-      await uploadBytes(storageRef, blob);
-      const url = await getDownloadURL(storageRef);
+      const nomeArquivo = `${userId}/${Date.now()}.webm`;
+      const { error: uploadError } = await supabase.storage
+        .from('audios')
+        .upload(nomeArquivo, blob, { contentType: 'audio/webm' });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('audios')
+        .getPublicUrl(nomeArquivo);
+
       await supabase.from('mensagens').insert({
-        conteudo: url,
+        conteudo: urlData.publicUrl,
         enviado_por: userId,
         nome_remetente: nomeUsuario,
         casal_id: userId,
         tipo: 'audio',
         duracao,
       });
+
+      // Limpeza automática: deleta os mais antigos se passar de 50MB
+      await limparAudiosSeLimiteExcedido();
     } catch {
-      alert('Erro ao enviar áudio.');
+      alert('Erro ao enviar áudio. Verifique se o bucket "audios" foi criado no Supabase Storage.');
     }
     setUploadando(false);
     setTempoGravacao(0);
+  };
+
+  const limparAudiosSeLimiteExcedido = async () => {
+    const LIMITE_BYTES = 50 * 1024 * 1024; // 50MB
+
+    // Lista todos os arquivos do bucket
+    const { data: arquivos } = await supabase.storage.from('audios').list('', {
+      limit: 1000,
+      sortBy: { column: 'created_at', order: 'asc' }, // mais antigos primeiro
+    });
+    if (!arquivos || arquivos.length === 0) return;
+
+    // Soma o tamanho total
+    const totalBytes = arquivos.reduce((acc, f) => acc + (f.metadata?.size ?? 0), 0);
+    if (totalBytes <= LIMITE_BYTES) return;
+
+    // Deleta os mais antigos até voltar abaixo do limite
+    let restante = totalBytes;
+    const paraExcluir: string[] = [];
+
+    for (const arquivo of arquivos) {
+      if (restante <= LIMITE_BYTES) break;
+      paraExcluir.push(arquivo.name);
+      restante -= arquivo.metadata?.size ?? 0;
+    }
+
+    if (paraExcluir.length > 0) {
+      await supabase.storage.from('audios').remove(paraExcluir);
+      // Remove também do banco as mensagens cujas URLs contêm esses arquivos
+      for (const nome of paraExcluir) {
+        await supabase.from('mensagens').delete().like('conteudo', `%${nome}%`);
+      }
+    }
   };
 
   const cancelarGravacao = () => {
