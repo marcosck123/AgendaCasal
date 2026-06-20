@@ -121,7 +121,8 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
     if (!file) return;
     setUploadando(true);
     try {
-      const nome = `${userId}/${Date.now()}-foto`;
+      const ext = file.name.split('.').pop() ?? 'jpg';
+      const nome = `${userId}/${Date.now()}.${ext}`;
       const { error } = await supabase.storage.from('fotos').upload(nome, file, { contentType: file.type });
       if (error) throw error;
       const { data: urlData } = supabase.storage.from('fotos').getPublicUrl(nome);
