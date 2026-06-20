@@ -35,9 +35,61 @@ export type Mensagem = {
   casal_id: string;
   enviado_por: string;
   nome_remetente: string;
-  tipo: 'texto' | 'audio';
+  tipo: 'texto' | 'audio' | 'foto';
   duracao?: number;
+  respondendo_id?: string;
+  respondendo_preview?: string;
   created_at: string;
+};
+
+export type Reacao = {
+  id: string;
+  mensagem_id: string;
+  usuario_id: string;
+  emoji: string;
+  created_at: string;
+};
+
+export type BucketItem = {
+  id: string;
+  titulo: string;
+  descricao?: string;
+  concluido: boolean;
+  criado_por: string;
+  created_at: string;
+};
+
+export type TimelineItem = {
+  id: string;
+  titulo: string;
+  descricao?: string;
+  data: string;
+  foto_url?: string;
+  criado_por: string;
+  created_at: string;
+};
+
+export type HumorDia = {
+  id: string;
+  usuario_id: string;
+  emoji: string;
+  texto?: string;
+  data: string;
+  created_at: string;
+};
+
+export type CasalConfig = {
+  id: string;
+  chave: string;
+  valor: string;
+  updated_at: string;
+};
+
+export type Conquista = {
+  id: string;
+  usuario_id: string;
+  codigo: string;
+  desbloqueada_em: string;
 };
 
 export type Audio = {
