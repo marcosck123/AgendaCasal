@@ -192,7 +192,7 @@ export default function Calendar({ userId, nomeUsuario: _nomeUsuario }: Calendar
                 const evs = byDay[iso] || [];
                 const isToday = iso === todayISO;
                 const isSel = iso === sel;
-                const cats = [...new Set(evs.map(e => e.categoria))].slice(0, 4);
+                const cats = Array.from(new Set(evs.map(e => e.categoria))).slice(0, 4);
                 return (
                   <button
                     key={i}
