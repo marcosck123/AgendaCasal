@@ -41,113 +41,141 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md border border-stone-100">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="text-5xl mb-3">💑</div>
-          <h1 className="text-3xl font-bold text-stone-800">AgendaCasal</h1>
-          <p className="text-stone-500 mt-1">O espaço do nosso amor ❤️</p>
+    <div
+      style={{
+        minHeight: '100vh',
+        background: 'var(--bg)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '0 26px 40px',
+      }}
+    >
+      {/* Logo e título */}
+      <div style={{ display: 'flex', gap: 13, marginBottom: 32, alignItems: 'center' }}>
+        <div style={{
+          width: 52, height: 52, borderRadius: 16,
+          background: 'linear-gradient(135deg, var(--brand-grad-start), var(--brand-grad-end))',
+          color: '#fff7f0',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 15, fontWeight: 700, letterSpacing: '0.04em',
+          boxShadow: 'var(--shadow-sm)',
+        }}>
+          M&amp;A
         </div>
+        <div>
+          <div style={{ fontSize: 27, fontWeight: 600, letterSpacing: '-0.03em', lineHeight: 1, color: 'var(--text)' }}>
+            Nosso
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--soft)', marginTop: 4 }}>
+            o espaço de vocês dois
+          </div>
+        </div>
+      </div>
 
-        {/* Toggle */}
-        <div className="flex bg-amber-50 rounded-xl p-1 mb-6 border border-amber-100">
+      {/* Card de login */}
+      <div className="card card-strong" style={{ padding: 20, width: '100%', maxWidth: 400 }}>
+        {/* Toggle login / cadastro */}
+        <div className="seg" style={{ marginBottom: 20 }}>
           <button
+            type="button"
+            className={modo === 'login' ? 'on' : ''}
             onClick={() => { setModo('login'); setErro(''); setSucesso(''); }}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-              modo === 'login'
-                ? 'bg-stone-700 text-white shadow-sm'
-                : 'text-stone-500 hover:text-stone-700'
-            }`}
           >
             Entrar
           </button>
           <button
+            type="button"
+            className={modo === 'cadastro' ? 'on' : ''}
             onClick={() => { setModo('cadastro'); setErro(''); setSucesso(''); }}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-              modo === 'cadastro'
-                ? 'bg-stone-700 text-white shadow-sm'
-                : 'text-stone-500 hover:text-stone-700'
-            }`}
           >
             Criar conta
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {modo === 'cadastro' && (
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                Seu nome
-              </label>
+              <label className="field-label">Seu nome</label>
               <input
+                className="input"
                 type="text"
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
                 placeholder="Como quer ser chamado(a)?"
-                className="w-full px-4 py-3 border-2 border-stone-200 rounded-xl focus:outline-none focus:border-stone-400 text-stone-800 placeholder-stone-300"
                 required
               />
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
-              E-mail
-            </label>
+            <label className="field-label">E-mail</label>
             <input
+              className="input"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="seu@email.com"
-              className="w-full px-4 py-3 border-2 border-stone-200 rounded-xl focus:outline-none focus:border-stone-400 text-stone-800 placeholder-stone-300"
+              placeholder="voce@email.com"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
-              Senha
-            </label>
+            <label className="field-label">Senha</label>
             <input
+              className="input"
               type="password"
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-4 py-3 border-2 border-stone-200 rounded-xl focus:outline-none focus:border-stone-400 text-stone-800 placeholder-stone-300"
               required
               minLength={6}
             />
           </div>
 
           {erro && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm">
-              ⚠️ {erro}
+            <div style={{
+              background: 'color-mix(in srgb, var(--danger) 10%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--danger) 30%, transparent)',
+              color: 'var(--danger)',
+              padding: '12px 14px',
+              borderRadius: 'var(--radius-lg)',
+              fontSize: 'var(--fs-13)',
+            }}>
+              {erro}
             </div>
           )}
 
           {sucesso && (
-            <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-xl text-sm">
-              ✅ {sucesso}
+            <div style={{
+              background: 'color-mix(in srgb, var(--status-online) 10%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--status-online) 30%, transparent)',
+              color: 'var(--status-online)',
+              padding: '12px 14px',
+              borderRadius: 'var(--radius-lg)',
+              fontSize: 'var(--fs-13)',
+            }}>
+              {sucesso}
             </div>
           )}
 
           <button
             type="submit"
             disabled={carregando}
-            className="w-full py-3 bg-stone-700 hover:bg-stone-800 disabled:bg-stone-300 text-white font-semibold rounded-xl transition-colors shadow-md hover:shadow-lg"
+            className="btn btn-primary btn-block"
+            style={{ marginTop: 4, opacity: carregando ? 0.6 : 1 }}
           >
             {carregando
               ? 'Aguarde...'
               : modo === 'login'
-              ? 'Entrar no nosso espaço 💕'
-              : 'Criar nossa conta 🌿'}
+              ? 'Entrar'
+              : 'Criar conta'}
           </button>
         </form>
 
-        <p className="text-center text-stone-400 text-xs mt-6">
-          Feito com amor para vocês dois ❤️
+        <p style={{ textAlign: 'center', fontSize: 'var(--fs-11)', color: 'var(--soft)', marginTop: 20 }}>
+          Nosso · o espaço de vocês dois
         </p>
       </div>
     </div>

@@ -8,7 +8,7 @@ export default function AgendaPage() {
   if (!user) return null;
   const nomeUsuario = user.user_metadata?.nome || user.email?.split('@')[0] || 'Amor';
   return (
-    <div className="h-full overflow-y-auto px-3 py-3">
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Calendar userId={user.id} nomeUsuario={nomeUsuario} />
     </div>
   );

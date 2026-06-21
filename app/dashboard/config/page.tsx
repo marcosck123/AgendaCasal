@@ -8,7 +8,7 @@ export default function ConfigPage() {
   if (!user) return null;
   const nomeUsuario = user.user_metadata?.nome || user.email?.split('@')[0] || 'Amor';
   return (
-    <div className="h-full overflow-y-auto">
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Config userId={user.id} nomeUsuario={nomeUsuario} onLogout={logout} />
     </div>
   );

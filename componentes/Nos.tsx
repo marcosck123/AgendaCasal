@@ -2,225 +2,323 @@
 
 import { useState } from 'react';
 import { useNos } from '@/ganchos/useNos';
+import { ProgressRing, Sheet } from './UIKit';
+import Icon from './Icon';
 
 interface NosProps {
   userId: string;
 }
 
-const HUMORES = ['😍', '😊', '😐', '😔', '😴', '🥰', '😂', '😤'];
+const HUMOR_OPCOES = [
+  { emoji: '😍', label: 'Apaixonado' },
+  { emoji: '😊', label: 'Feliz' },
+  { emoji: '😐', label: 'Normal' },
+  { emoji: '😔', label: 'Triste' },
+  { emoji: '😴', label: 'Cansado' },
+  { emoji: '🥰', label: 'Romântico' },
+  { emoji: '😂', label: 'Divertido' },
+  { emoji: '😤', label: 'Estressado' },
+];
 
 export default function Nos({ userId }: NosProps) {
   const { bucket, timeline, humores, loading, addBucket, toggleBucket, deleteBucket, addTimeline, deleteTimeline, registrarHumor } = useNos(userId);
-  const [aba, setAba] = useState<'bucket' | 'timeline' | 'humor'>('bucket');
+  const [sub, setSub] = useState<'lista' | 'momentos' | 'humor'>('lista');
   const [novoBucket, setNovoBucket] = useState('');
-  const [novaTimeline, setNovaTimeline] = useState({ titulo: '', data: '', descricao: '' });
-  const [mostrarFormTimeline, setMostrarFormTimeline] = useState(false);
+  const [openForm, setOpenForm] = useState(false);
+  const [formMomento, setFormMomento] = useState({ titulo: '', data: new Date().toISOString().split('T')[0], descricao: '' });
   const [salvando, setSalvando] = useState(false);
 
   const meuHumor = humores.find(h => h.usuario_id === userId);
   const outroHumor = humores.find(h => h.usuario_id !== userId);
 
-  const handleAddBucket = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddBucket = () => {
     if (!novoBucket.trim()) return;
-    await addBucket(novoBucket.trim());
+    addBucket(novoBucket.trim());
     setNovoBucket('');
   };
 
-  const handleAddTimeline = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!novaTimeline.titulo.trim() || !novaTimeline.data) return;
+  const handleAddTimeline = async () => {
+    if (!formMomento.titulo.trim() || !formMomento.data) return;
     setSalvando(true);
-    await addTimeline(novaTimeline.titulo, novaTimeline.data, novaTimeline.descricao);
-    setNovaTimeline({ titulo: '', data: '', descricao: '' });
-    setMostrarFormTimeline(false);
+    await addTimeline(formMomento.titulo, formMomento.data, formMomento.descricao);
+    setFormMomento({ titulo: '', data: new Date().toISOString().split('T')[0], descricao: '' });
+    setOpenForm(false);
     setSalvando(false);
   };
 
   const formatarData = (d: string) =>
     new Date(d + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 
-  if (loading) return <div className="text-center py-16 text-stone-400">Carregando... 💕</div>;
+  const feitos = bucket.filter(b => b.concluido).length;
+
+  if (loading) {
+    return <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--muted)' }}>Carregando...</div>;
+  }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Sub-abas */}
-      <div className="flex border-b border-stone-100 bg-white shrink-0">
-        {([['bucket', '🗒️ Lista'], ['timeline', '📸 Momentos'], ['humor', '💭 Humor']] as const).map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setAba(key)}
-            className={`flex-1 py-3 text-xs font-semibold transition-colors ${aba === key ? 'text-stone-800 border-b-2 border-stone-700' : 'text-stone-400'}`}
-          >
-            {label}
-          </button>
-        ))}
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      {/* App bar */}
+      <div className="appbar" style={{ paddingBottom: 10 }}>
+        <span className="appbar-title">Nós</span>
+        <div className="appbar-spacer" />
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        {/* BUCKET LIST */}
-        {aba === 'bucket' && (
-          <div className="p-4 space-y-4">
-            <form onSubmit={handleAddBucket} className="flex gap-2">
-              <input
-                type="text"
-                value={novoBucket}
-                onChange={e => setNovoBucket(e.target.value)}
-                placeholder="Adicionar à lista de desejos..."
-                className="flex-1 px-4 py-2.5 bg-white border-2 border-stone-200 rounded-xl focus:outline-none focus:border-stone-400 text-stone-800 text-sm"
-              />
-              <button type="submit" className="px-4 py-2.5 bg-stone-700 text-white rounded-xl text-sm font-semibold">+</button>
-            </form>
+      {/* Segmented control */}
+      <div className="pad" style={{ paddingBottom: 12 }}>
+        <div className="seg">
+          {([['lista', 'Lista'], ['momentos', 'Momentos'], ['humor', 'Humor']] as const).map(([v, l]) => (
+            <button key={v} className={sub === v ? 'on' : ''} onClick={() => setSub(v)}>{l}</button>
+          ))}
+        </div>
+      </div>
 
-            {bucket.length === 0 ? (
-              <div className="text-center py-12 text-stone-400">
-                <div className="text-4xl mb-3">🗒️</div>
-                <p>Lista vazia</p>
-                <p className="text-sm mt-1">Adicionem lugares para ir, coisas para fazer!</p>
+      <div className="screen-scroll pad" style={{ paddingBottom: 24 }}>
+        <div className="screen-enter section-gap" key={sub}>
+
+          {/* LISTA (Bucket list) */}
+          {sub === 'lista' && (
+            <>
+              <div className="card card-strong" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <ProgressRing value={feitos} max={bucket.length || 1} size={56} color="var(--accent)">
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>{feitos}/{bucket.length}</span>
+                </ProgressRing>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 600 }}>Lista do casal</div>
+                  <div style={{ fontSize: 13, color: 'var(--muted)' }}>coisas pra viver juntos</div>
+                </div>
               </div>
-            ) : (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-stone-400 uppercase tracking-wide">
-                  {bucket.filter(b => !b.concluido).length} pendentes · {bucket.filter(b => b.concluido).length} concluídos
-                </p>
-                {bucket.map(item => (
-                  <div key={item.id} className={`bg-white border border-stone-100 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-sm ${item.concluido ? 'opacity-60' : ''}`}>
-                    <button
-                      onClick={() => toggleBucket(item.id, !item.concluido)}
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-                        item.concluido ? 'bg-stone-700 border-stone-700 text-white' : 'border-stone-300'
-                      }`}
-                    >
-                      {item.concluido && '✓'}
-                    </button>
-                    <p className={`flex-1 text-sm ${item.concluido ? 'line-through text-stone-400' : 'text-stone-800'}`}>
-                      {item.titulo}
-                    </p>
-                    <button onClick={() => deleteBucket(item.id)} className="text-stone-300 hover:text-red-400 transition-colors">🗑️</button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
-        {/* TIMELINE */}
-        {aba === 'timeline' && (
-          <div className="p-4 space-y-4">
-            <div className="flex justify-between items-center">
-              <p className="text-sm font-semibold text-stone-700">Nossa história</p>
-              <button
-                onClick={() => setMostrarFormTimeline(!mostrarFormTimeline)}
-                className="px-3 py-1.5 bg-stone-700 text-white text-xs rounded-xl"
-              >
-                {mostrarFormTimeline ? '✕' : '+ Momento'}
-              </button>
-            </div>
-
-            {mostrarFormTimeline && (
-              <form onSubmit={handleAddTimeline} className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
+              <div className="row" style={{ gap: 8 }}>
                 <input
-                  type="text"
-                  value={novaTimeline.titulo}
-                  onChange={e => setNovaTimeline(p => ({ ...p, titulo: e.target.value }))}
-                  placeholder="Título do momento *"
-                  className="w-full px-3 py-2 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-stone-400"
-                  required
-                />
-                <input
-                  type="date"
-                  value={novaTimeline.data}
-                  onChange={e => setNovaTimeline(p => ({ ...p, data: e.target.value }))}
-                  className="w-full px-3 py-2 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-stone-400"
-                  required
-                />
-                <textarea
-                  value={novaTimeline.descricao}
-                  onChange={e => setNovaTimeline(p => ({ ...p, descricao: e.target.value }))}
-                  placeholder="Descrição (opcional)"
-                  rows={2}
-                  className="w-full px-3 py-2 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-stone-400 resize-none"
+                  className="input"
+                  placeholder="Adicionar um sonho…"
+                  value={novoBucket}
+                  onChange={e => setNovoBucket(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAddBucket()}
                 />
                 <button
-                  type="submit"
-                  disabled={salvando}
-                  className="w-full py-2 bg-stone-700 text-white text-sm font-semibold rounded-xl disabled:opacity-50"
+                  className="icon-btn"
+                  style={{ background: 'var(--accent)', color: '#fff', borderColor: 'var(--accent)', flexShrink: 0 }}
+                  onClick={handleAddBucket}
                 >
-                  {salvando ? 'Salvando...' : 'Salvar momento 💕'}
+                  <Icon name="plus" size={20} />
                 </button>
-              </form>
-            )}
-
-            {timeline.length === 0 ? (
-              <div className="text-center py-12 text-stone-400">
-                <div className="text-4xl mb-3">📸</div>
-                <p>Nenhum momento ainda</p>
-                <p className="text-sm mt-1">Registrem datas especiais de vocês!</p>
               </div>
-            ) : (
-              <div className="relative">
-                <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-stone-200" />
-                <div className="space-y-4 pl-10">
-                  {timeline.map(item => (
-                    <div key={item.id} className="relative">
-                      <div className="absolute -left-6 w-4 h-4 bg-stone-700 rounded-full border-2 border-white shadow" />
-                      <div className="bg-white border border-stone-100 rounded-2xl p-4 shadow-sm">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-stone-800 text-sm">{item.titulo}</p>
-                            <p className="text-xs text-stone-400 mt-0.5">📅 {formatarData(item.data)}</p>
-                            {item.descricao && <p className="text-sm text-stone-600 mt-1.5">{item.descricao}</p>}
-                          </div>
-                          <button onClick={() => deleteTimeline(item.id)} className="text-stone-300 hover:text-red-400 ml-2 shrink-0">🗑️</button>
-                        </div>
-                      </div>
+
+              {bucket.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--soft)' }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>🗒️</div>
+                  <p>Lista vazia</p>
+                  <p style={{ fontSize: 13, marginTop: 4 }}>Adicionem lugares para ir, coisas para fazer!</p>
+                </div>
+              ) : (
+                <div className="stack" style={{ gap: 9 }}>
+                  {bucket.map(item => (
+                    <div
+                      key={item.id}
+                      className="card"
+                      style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '13px 15px', opacity: item.concluido ? 0.6 : 1 }}
+                    >
+                      <button
+                        onClick={() => toggleBucket(item.id, !item.concluido)}
+                        style={{
+                          width: 24, height: 24, borderRadius: 8, flexShrink: 0,
+                          border: `2px solid ${item.concluido ? 'var(--accent)' : 'var(--border-strong)'}`,
+                          background: item.concluido ? 'var(--accent)' : 'transparent',
+                          color: '#fff',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          transition: 'all var(--dur-base)', cursor: 'pointer',
+                        }}
+                      >
+                        {item.concluido && <Icon name="check" size={15} />}
+                      </button>
+                      <span style={{
+                        flex: 1, fontSize: 14.5,
+                        textDecoration: item.concluido ? 'line-through' : 'none',
+                        color: item.concluido ? 'var(--soft)' : 'var(--text)',
+                      }}>
+                        {item.titulo}
+                      </span>
+                      <button
+                        className="icon-btn"
+                        style={{ width: 32, height: 32, color: 'var(--soft)' }}
+                        onClick={() => deleteBucket(item.id)}
+                      >
+                        <Icon name="trash" size={15} />
+                      </button>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* HUMOR */}
-        {aba === 'humor' && (
-          <div className="p-4 space-y-5">
-            <div className="bg-white border border-stone-100 rounded-2xl p-5 shadow-sm">
-              <p className="text-sm font-semibold text-stone-700 mb-4">Como você está hoje?</p>
-              <div className="grid grid-cols-4 gap-3">
-                {HUMORES.map(emoji => (
-                  <button
-                    key={emoji}
-                    onClick={() => registrarHumor(emoji)}
-                    className={`text-3xl p-2 rounded-xl transition-all ${
-                      meuHumor?.emoji === emoji ? 'bg-stone-100 scale-110 ring-2 ring-stone-400' : 'hover:bg-stone-50 hover:scale-105'
-                    }`}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-              {meuHumor && (
-                <p className="text-center text-sm text-stone-500 mt-4">
-                  Você está {meuHumor.emoji} hoje
-                </p>
               )}
-            </div>
+            </>
+          )}
 
-            {outroHumor && (
-              <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-center">
-                <p className="text-xs font-semibold text-amber-600 mb-2">Seu amor hoje</p>
-                <p className="text-5xl">{outroHumor.emoji}</p>
-              </div>
-            )}
+          {/* MOMENTOS (Timeline) */}
+          {sub === 'momentos' && (
+            <>
+              <button className="btn btn-block" onClick={() => setOpenForm(true)}>
+                <Icon name="plus" size={18} /> Registrar um momento
+              </button>
 
-            {!outroHumor && (
-              <div className="bg-stone-50 border border-stone-100 rounded-2xl p-4 text-center text-stone-400">
-                <p className="text-sm">Seu amor ainda não registrou o humor de hoje</p>
+              {timeline.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--soft)' }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>📸</div>
+                  <p>Nenhum momento ainda</p>
+                  <p style={{ fontSize: 13, marginTop: 4 }}>Registrem datas especiais de vocês!</p>
+                </div>
+              ) : (
+                <div style={{ position: 'relative', paddingLeft: 26 }}>
+                  <div style={{
+                    position: 'absolute', left: 6, top: 8, bottom: 8,
+                    width: 2, background: 'var(--border)', borderRadius: 9,
+                  }} />
+                  <div className="stack" style={{ gap: 14 }}>
+                    {[...timeline].sort((a, b) => b.data.localeCompare(a.data)).map(item => (
+                      <div key={item.id} style={{ position: 'relative' }}>
+                        <div style={{
+                          position: 'absolute', left: -26, top: 6,
+                          width: 14, height: 14, borderRadius: 99,
+                          background: 'var(--romance)',
+                          border: '3px solid var(--bg)',
+                        }} />
+                        <div className="card" style={{ padding: 15 }}>
+                          <div style={{ fontSize: 11.5, color: 'var(--romance)', fontWeight: 600, letterSpacing: '0.02em' }}>
+                            {formatarData(item.data)}
+                          </div>
+                          <div className="serif" style={{ fontSize: 17, fontWeight: 600, margin: '3px 0 4px' }}>
+                            {item.titulo}
+                          </div>
+                          {item.descricao && (
+                            <div style={{ fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.5 }}>
+                              {item.descricao}
+                            </div>
+                          )}
+                          <button
+                            onClick={() => deleteTimeline(item.id)}
+                            style={{
+                              position: 'absolute', top: 12, right: 12,
+                              color: 'var(--soft)', border: 'none', background: 'none', cursor: 'pointer',
+                            }}
+                          >
+                            <Icon name="trash" size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {openForm && (
+                <Sheet title="Novo momento" onClose={() => setOpenForm(false)}>
+                  <div className="stack" style={{ gap: 14 }}>
+                    <div>
+                      <label className="field-label">Título</label>
+                      <input
+                        className="input"
+                        autoFocus
+                        placeholder="O que aconteceu?"
+                        value={formMomento.titulo}
+                        onChange={e => setFormMomento(p => ({ ...p, titulo: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="field-label">Data</label>
+                      <input
+                        className="input"
+                        type="date"
+                        value={formMomento.data}
+                        onChange={e => setFormMomento(p => ({ ...p, data: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="field-label">Descrição <span style={{ color: 'var(--soft)' }}>(opcional)</span></label>
+                      <textarea
+                        className="input"
+                        rows={3}
+                        placeholder="Conta como foi…"
+                        value={formMomento.descricao}
+                        onChange={e => setFormMomento(p => ({ ...p, descricao: e.target.value }))}
+                      />
+                    </div>
+                    <div className="row" style={{ gap: 10, marginTop: 4 }}>
+                      <button className="btn" style={{ flex: 1 }} onClick={() => setOpenForm(false)}>Cancelar</button>
+                      <button
+                        className="btn btn-primary"
+                        style={{ flex: 1.4, opacity: formMomento.titulo.trim() && !salvando ? 1 : 0.5 }}
+                        disabled={!formMomento.titulo.trim() || salvando}
+                        onClick={handleAddTimeline}
+                      >
+                        {salvando ? 'Salvando...' : 'Salvar'}
+                      </button>
+                    </div>
+                  </div>
+                </Sheet>
+              )}
+            </>
+          )}
+
+          {/* HUMOR */}
+          {sub === 'humor' && (
+            <>
+              <div className="card card-strong" style={{ display: 'flex', gap: 12, padding: 18 }}>
+                {['marcos', 'ana'].map(u => {
+                  const h = u === userId
+                    ? (meuHumor ? { emoji: meuHumor.emoji, label: HUMOR_OPCOES.find(o => o.emoji === meuHumor.emoji)?.label ?? '' } : { emoji: '😐', label: 'Normal' })
+                    : (outroHumor ? { emoji: outroHumor.emoji, label: HUMOR_OPCOES.find(o => o.emoji === outroHumor.emoji)?.label ?? '' } : { emoji: '❓', label: 'Sem registro' });
+                  return (
+                    <div key={u} style={{
+                      flex: 1, textAlign: 'center', padding: '6px 4px',
+                      borderRadius: 16,
+                      background: u === userId ? 'var(--accent-soft)' : 'transparent',
+                    }}>
+                      <div style={{ fontSize: 44, lineHeight: 1.1 }}>{h.emoji}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, marginTop: 6 }}>
+                        {u === userId ? 'Você' : 'Seu amor'}
+                      </div>
+                      <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>{h.label}</div>
+                    </div>
+                  );
+                })}
               </div>
-            )}
-          </div>
-        )}
+
+              <div className="card">
+                <div className="eyebrow" style={{ marginBottom: 14 }}>Como você está hoje?</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
+                  {HUMOR_OPCOES.map(h => {
+                    const on = meuHumor?.emoji === h.emoji;
+                    return (
+                      <button
+                        key={h.emoji}
+                        onClick={() => registrarHumor(h.emoji)}
+                        style={{
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                          padding: '11px 4px',
+                          borderRadius: 15,
+                          border: `1px solid ${on ? 'var(--accent)' : 'var(--border)'}`,
+                          background: on ? 'var(--accent-soft)' : 'var(--panel)',
+                          transition: 'all var(--dur-base)', cursor: 'pointer', fontFamily: 'inherit',
+                        }}
+                      >
+                        <span style={{ fontSize: 26, lineHeight: 1 }}>{h.emoji}</span>
+                        <span style={{
+                          fontSize: 10.5,
+                          color: on ? 'var(--accent)' : 'var(--soft)',
+                          fontWeight: on ? 600 : 400,
+                        }}>
+                          {h.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p style={{ fontSize: 12, color: 'var(--soft)', marginTop: 14, lineHeight: 1.5 }}>
+                  Seu amor vê seu humor na hora. Um registro por dia.
+                </p>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
