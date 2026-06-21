@@ -133,10 +133,8 @@ export default function Home({ userId, nomeUsuario }: HomeProps) {
       .then(({ data }) => { if (data) setLembretes(data as Lembrete[]); });
   }, []);
 
-  const dataInicio = config['data_inicio'];
-  const diasJuntos = dataInicio
-    ? Math.floor((Date.now() - new Date(dataInicio).getTime()) / 86400000)
-    : 0;
+  const dataInicio = config['data_inicio'] || '2024-01-29';
+  const diasJuntos = Math.floor((Date.now() - new Date(dataInicio + 'T00:00:00').getTime()) / 86400000);
 
   const hoje = new Date().toISOString().split('T')[0];
   const amanha = new Date(Date.now() + 86400000).toISOString().split('T')[0];
