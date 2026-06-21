@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useCasalConfig } from '@/ganchos/useCasalConfig';
+import { Avatar } from './UIKit';
+import Icon from './Icon';
 
 interface ConfigProps {
   userId: string;
@@ -13,12 +15,6 @@ export default function Config({ nomeUsuario, onLogout }: ConfigProps) {
   const { config, setConfigValue, loading } = useCasalConfig();
   const [salvando, setSalvando] = useState<string | null>(null);
 
-  const campos = [
-    { chave: 'nome_marcos', label: 'Nome (Marcos)', placeholder: 'Marcos', emoji: '🙋' },
-    { chave: 'nome_amor', label: 'Nome do amor (Ana)', placeholder: 'Ana', emoji: '💌' },
-    { chave: 'data_inicio', label: 'Data que ficaram juntos', placeholder: '', emoji: '💕', tipo: 'date' },
-  ];
-
   const salvar = async (chave: string, valor: string) => {
     setSalvando(chave);
     await setConfigValue(chave, valor);
@@ -29,52 +25,121 @@ export default function Config({ nomeUsuario, onLogout }: ConfigProps) {
     ? Math.floor((Date.now() - new Date(config['data_inicio']).getTime()) / 86400000)
     : null;
 
-  if (loading) return <div className="p-6 text-center text-stone-400">Carregando...</div>;
+  // Determine who this user is based on nome
+  const who = nomeUsuario.toLowerCase() === (config['nome_marcos'] || 'marcos').toLowerCase()
+    ? 'marcos'
+    : 'ana';
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--muted)' }}>
+        Carregando...
+      </div>
+    );
+  }
 
   return (
-    <div className="p-4 space-y-5">
-      {/* Header */}
-      <div className="bg-stone-700 rounded-2xl p-5 text-white text-center">
-        <div className="text-5xl mb-3">👫</div>
-        <p className="font-bold text-lg">{config['nome_marcos'] || 'Marcos'} & {config['nome_amor'] || 'Ana'}</p>
-        {diasJuntos !== null && (
-          <p className="text-stone-300 text-sm mt-1">{diasJuntos} dias juntos 💕</p>
-        )}
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      {/* App bar */}
+      <div className="appbar">
+        <span className="appbar-title">Configurações</span>
       </div>
 
-      {/* Campos */}
-      <div className="space-y-3">
-        <p className="text-xs font-semibold text-stone-400 uppercase tracking-wide">Personalizar</p>
-        {campos.map(campo => (
-          <div key={campo.chave} className="bg-white border border-stone-100 rounded-2xl px-4 py-3 shadow-sm">
-            <p className="text-xs text-stone-400 mb-1">{campo.emoji} {campo.label}</p>
-            <div className="flex gap-2">
-              <input
-                type={campo.tipo ?? 'text'}
-                defaultValue={config[campo.chave] ?? ''}
-                placeholder={campo.placeholder}
-                onBlur={e => salvar(campo.chave, e.target.value)}
-                className="flex-1 text-sm text-stone-800 focus:outline-none bg-transparent"
-              />
-              {salvando === campo.chave && <span className="text-xs text-stone-400">✓</span>}
+      <div className="screen-scroll pad" style={{ paddingBottom: 24 }}>
+        <div className="section-gap screen-enter">
+
+          {/* Conectado como */}
+          <div>
+            <div className="eyebrow" style={{ padding: '2px 4px 8px' }}>Conectado como</div>
+            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 14 }}>
+              <Avatar who={who} size="lg" label={nomeUsuario} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 16, fontWeight: 600 }}>{nomeUsuario}</div>
+                <div style={{ fontSize: 12.5, color: 'var(--soft)' }}>
+                  Lembretes privados e mensagens ficam vinculados a esta conta.
+                </div>
+              </div>
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* Info da conta */}
-      <div className="bg-white border border-stone-100 rounded-2xl px-4 py-3 shadow-sm">
-        <p className="text-xs text-stone-400 mb-1">👤 Conta</p>
-        <p className="text-sm text-stone-800 font-medium">{nomeUsuario}</p>
-      </div>
+          {/* O casal */}
+          <div>
+            <div className="eyebrow" style={{ padding: '2px 4px 8px' }}>O casal</div>
+            <div className="card" style={{ padding: 16 }}>
+              <div style={{ marginBottom: 14 }}>
+                <label className="field-label">Nome do Marcos</label>
+                <input
+                  className="input"
+                  defaultValue={config['nome_marcos'] ?? 'Marcos'}
+                  onBlur={e => salvar('nome_marcos', e.target.value || 'Marcos')}
+                />
+                {salvando === 'nome_marcos' && (
+                  <span style={{ fontSize: 11, color: 'var(--status-online)' }}>Salvo ✓</span>
+                )}
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label className="field-label">Nome da Ana</label>
+                <input
+                  className="input"
+                  defaultValue={config['nome_amor'] ?? 'Ana'}
+                  onBlur={e => salvar('nome_amor', e.target.value || 'Ana')}
+                />
+                {salvando === 'nome_amor' && (
+                  <span style={{ fontSize: 11, color: 'var(--status-online)' }}>Salvo ✓</span>
+                )}
+              </div>
+              <div>
+                <label className="field-label">Quando tudo começou</label>
+                <input
+                  className="input"
+                  type="date"
+                  defaultValue={config['data_inicio'] ?? ''}
+                  onBlur={e => salvar('data_inicio', e.target.value)}
+                />
+                {salvando === 'data_inicio' && (
+                  <span style={{ fontSize: 11, color: 'var(--status-online)' }}>Salvo ✓</span>
+                )}
+              </div>
+              {diasJuntos !== null && (
+                <p style={{ fontSize: 12, color: 'var(--romance)', marginTop: 10, fontWeight: 500 }}>
+                  {diasJuntos.toLocaleString('pt-BR')} dias juntos 💕
+                </p>
+              )}
+              <p style={{ fontSize: 11.5, color: 'var(--soft)', marginTop: 8 }}>
+                Salva automático ao sair do campo.
+              </p>
+            </div>
+          </div>
 
-      {/* Logout */}
-      <button
-        onClick={onLogout}
-        className="w-full py-3 border-2 border-stone-200 text-stone-600 font-semibold rounded-2xl hover:bg-stone-50 transition-colors text-sm"
-      >
-        Sair da conta
-      </button>
+          {/* Aparência */}
+          <div>
+            <div className="eyebrow" style={{ padding: '2px 4px 8px' }}>Aparência</div>
+            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16 }}>
+              <div style={{ color: 'var(--accent)' }}><Icon name="sparkle" size={20} /></div>
+              <div style={{ flex: 1, fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>
+                O tema segue as preferências do sistema (claro / escuro).
+              </div>
+            </div>
+          </div>
+
+          {/* Sair */}
+          <button
+            className="btn btn-block"
+            onClick={onLogout}
+            style={{
+              color: 'var(--danger)',
+              borderColor: 'color-mix(in srgb, var(--danger) 35%, transparent)',
+              marginTop: 4,
+            }}
+          >
+            <Icon name="logout" size={18} /> Sair da conta
+          </button>
+
+          <p style={{ textAlign: 'center', fontSize: 11.5, color: 'var(--soft)' }}>
+            Nosso · o espaço de vocês dois
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

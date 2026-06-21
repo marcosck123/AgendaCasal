@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase, Mensagem, Reacao } from '@/lib/supabase';
+import Icon from './Icon';
 
 interface ChatProps {
   userId: string;
@@ -58,7 +59,6 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
 
   useEffect(() => {
     fetchMensagens();
-
     const ch = supabase
       .channel('chat-realtime')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensagens' }, (payload) => {
@@ -82,7 +82,6 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
         }
       })
       .subscribe();
-
     channelRef.current = ch;
     return () => { supabase.removeChannel(ch); };
   }, [fetchMensagens, userId]);
@@ -180,31 +179,11 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
         tipo: 'audio',
         duracao,
       });
-      await limparAudiosSeLimiteExcedido();
     } catch {
-      alert('Erro ao enviar áudio. Verifique se o bucket "audios" existe no Supabase Storage.');
+      alert('Erro ao enviar áudio.');
     }
     setUploadando(false);
     setTempoGravacao(0);
-  };
-
-  const limparAudiosSeLimiteExcedido = async () => {
-    const LIMITE = 50 * 1024 * 1024;
-    const { data: arquivos } = await supabase.storage.from('audios').list('', { limit: 1000, sortBy: { column: 'created_at', order: 'asc' } });
-    if (!arquivos?.length) return;
-    const total = arquivos.reduce((acc, f) => acc + (f.metadata?.size ?? 0), 0);
-    if (total <= LIMITE) return;
-    let restante = total;
-    const excluir: string[] = [];
-    for (const f of arquivos) {
-      if (restante <= LIMITE) break;
-      excluir.push(f.name);
-      restante -= f.metadata?.size ?? 0;
-    }
-    if (excluir.length) {
-      await supabase.storage.from('audios').remove(excluir);
-      for (const nome of excluir) await supabase.from('mensagens').delete().like('conteudo', `%${nome}%`);
-    }
   };
 
   const cancelarGravacao = () => {
@@ -242,15 +221,27 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
   const msgRespondida = (id?: string) => id ? mensagens.find(m => m.id === id) : undefined;
 
   return (
-    <div className="flex flex-col h-full" onClick={() => setEmojiMenuId(null)}>
-      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-2">
+    <div
+      style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)' }}
+      onClick={() => setEmojiMenuId(null)}
+    >
+      {/* Header */}
+      <div className="appbar">
+        <div>
+          <div className="appbar-title">Conversa</div>
+          <div className="appbar-sub">chat do casal</div>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {loading ? (
-          <div className="text-center text-stone-400 pt-10">Carregando... 💭</div>
+          <div style={{ textAlign: 'center', color: 'var(--muted)', paddingTop: 40 }}>Carregando...</div>
         ) : mensagens.length === 0 ? (
-          <div className="text-center text-stone-400 pt-16">
-            <div className="text-5xl mb-3">💬</div>
-            <p className="font-medium">Comecem a conversar!</p>
-            <p className="text-sm mt-1">Mande mensagem, foto ou áudio 💕</p>
+          <div style={{ textAlign: 'center', color: 'var(--muted)', paddingTop: 64 }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>💬</div>
+            <p style={{ fontWeight: 600 }}>Comecem a conversar!</p>
+            <p style={{ fontSize: 13, marginTop: 4, color: 'var(--soft)' }}>Mande mensagem, foto ou áudio</p>
           </div>
         ) : (
           mensagens.map(msg => {
@@ -259,49 +250,80 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
             const rsEmoji = reacoesPorEmoji(msg.id);
 
             return (
-              <div key={msg.id} className={`flex flex-col ${minha ? 'items-end' : 'items-start'}`}>
+              <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: minha ? 'flex-end' : 'flex-start', animation: 'msg-in var(--dur-slow) var(--ease-ui)' }}>
                 <div
-                  className={`max-w-[78%] rounded-2xl px-3 py-2 shadow-sm relative ${
-                    minha ? 'bg-stone-700 text-white rounded-br-sm' : 'bg-white text-stone-800 border border-stone-100 rounded-bl-sm'
-                  }`}
+                  style={{
+                    maxWidth: '78%', borderRadius: 18, padding: '10px 14px',
+                    boxShadow: 'var(--shadow-sm)', position: 'relative',
+                    background: minha ? 'var(--accent)' : 'var(--panel-strong)',
+                    color: minha ? '#fff' : 'var(--text)',
+                    borderBottomRightRadius: minha ? 4 : 18,
+                    borderBottomLeftRadius: minha ? 18 : 4,
+                  }}
                   onDoubleClick={e => { e.stopPropagation(); setEmojiMenuId(msg.id); }}
                 >
-                  {!minha && <p className="text-xs font-semibold text-amber-600 mb-1">{msg.nome_remetente}</p>}
+                  {!minha && (
+                    <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--romance)', marginBottom: 4 }}>
+                      {msg.nome_remetente}
+                    </p>
+                  )}
 
                   {respondidaMsg && (
-                    <div className={`mb-1.5 px-2 py-1 rounded-lg text-xs border-l-2 ${minha ? 'border-white/40 bg-white/10 text-white/70' : 'border-stone-300 bg-stone-50 text-stone-500'}`}>
+                    <div style={{
+                      marginBottom: 8, padding: '6px 10px', borderRadius: 10, fontSize: 12,
+                      borderLeft: `2px solid ${minha ? 'rgba(255,255,255,0.5)' : 'var(--border-strong)'}`,
+                      background: minha ? 'rgba(255,255,255,0.15)' : 'var(--bg)',
+                      color: minha ? 'rgba(255,255,255,0.8)' : 'var(--muted)',
+                    }}>
                       {respondidaMsg.conteudo.slice(0, 60)}{respondidaMsg.conteudo.length > 60 ? '…' : ''}
                     </div>
                   )}
 
                   {msg.tipo === 'foto' ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={msg.conteudo} alt="foto" className="rounded-xl max-w-full max-h-56 object-cover" />
+                    <img src={msg.conteudo} alt="foto" style={{ borderRadius: 12, maxWidth: '100%', maxHeight: 220, objectFit: 'cover', display: 'block' }} />
                   ) : msg.tipo === 'audio' ? (
-                    <div className="flex items-center gap-2 py-0.5">
-                      <span>🎙️</span>
-                      <audio src={msg.conteudo} controls className="h-8 w-32" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 0' }}>
+                      <Icon name="mic" size={18} />
+                      <audio src={msg.conteudo} controls style={{ height: 32, width: 128 }} />
                       {msg.duracao != null && msg.duracao > 0 && (
-                        <span className={`text-xs shrink-0 ${minha ? 'text-stone-300' : 'text-stone-400'}`}>
+                        <span style={{ fontSize: 12, color: minha ? 'rgba(255,255,255,0.7)' : 'var(--muted)' }}>
                           {formatarTempo(msg.duracao)}
                         </span>
                       )}
                     </div>
                   ) : (
-                    <p className="text-sm leading-relaxed">{msg.conteudo}</p>
+                    <p style={{ fontSize: 14, lineHeight: 1.5 }}>{msg.conteudo}</p>
                   )}
 
-                  <p className={`text-xs mt-1 text-right ${minha ? 'text-stone-300' : 'text-stone-400'}`}>
+                  <p style={{ fontSize: 11, marginTop: 4, textAlign: 'right', opacity: 0.6 }}>
                     {formatarHora(msg.created_at)}
                   </p>
 
+                  {/* Emoji picker */}
                   {emojiMenuId === msg.id && (
                     <div
-                      className={`absolute ${minha ? 'right-0' : 'left-0'} -top-10 bg-white border border-stone-200 rounded-full shadow-lg px-2 py-1 flex gap-1 z-10`}
+                      style={{
+                        position: 'absolute',
+                        [minha ? 'right' : 'left']: 0,
+                        top: -44,
+                        background: 'var(--panel-strong)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 999,
+                        boxShadow: 'var(--shadow)',
+                        padding: '6px 10px',
+                        display: 'flex', gap: 4, zIndex: 10,
+                      }}
                       onClick={e => e.stopPropagation()}
                     >
                       {EMOJIS_REACAO.map(e => (
-                        <button key={e} onClick={() => reagir(msg.id, e)} className="text-lg hover:scale-125 transition-transform">
+                        <button
+                          key={e}
+                          onClick={() => reagir(msg.id, e)}
+                          style={{ fontSize: 18, cursor: 'pointer', border: 'none', background: 'none', transition: 'transform 0.1s', padding: 2 }}
+                          onMouseOver={el => (el.currentTarget.style.transform = 'scale(1.25)')}
+                          onMouseOut={el => (el.currentTarget.style.transform = 'scale(1)')}
+                        >
                           {e}
                         </button>
                       ))}
@@ -309,13 +331,22 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
                   )}
                 </div>
 
+                {/* Reactions */}
                 {rsEmoji.length > 0 && (
-                  <div className="flex gap-1 mt-1">
+                  <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
                     {rsEmoji.map(([emoji, count]) => (
                       <button
                         key={emoji}
                         onClick={() => reagir(msg.id, emoji)}
-                        className="bg-white border border-stone-200 rounded-full px-1.5 py-0.5 text-xs shadow-sm"
+                        style={{
+                          background: 'var(--panel-strong)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 999,
+                          padding: '2px 8px',
+                          fontSize: 12,
+                          cursor: 'pointer',
+                          boxShadow: 'var(--shadow-sm)',
+                        }}
                       >
                         {emoji}{count > 1 ? ` ${count}` : ''}
                       </button>
@@ -323,23 +354,43 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
                   </div>
                 )}
 
+                {/* Reply button */}
                 <button
                   onClick={e => { e.stopPropagation(); setRespondendo(msg); }}
-                  className="text-xs text-stone-400 hover:text-stone-600 mt-0.5 px-1"
+                  style={{
+                    fontSize: 12, color: 'var(--muted)', marginTop: 2, padding: '2px 4px',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 4,
+                  }}
                 >
-                  ↩ responder
+                  <Icon name="reply" size={12} /> responder
                 </button>
               </div>
             );
           })
         )}
 
+        {/* Typing indicator */}
         {parceiroDigitando && (
-          <div className="flex justify-start">
-            <div className="bg-white border border-stone-100 rounded-2xl rounded-bl-sm px-4 py-2.5 shadow-sm">
-              <div className="flex gap-1 items-center h-4">
+          <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+            <div style={{
+              background: 'var(--panel-strong)',
+              border: '1px solid var(--border)',
+              borderRadius: 18, borderBottomLeftRadius: 4,
+              padding: '12px 16px',
+              boxShadow: 'var(--shadow-sm)',
+            }}>
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center', height: 16 }}>
                 {[0, 150, 300].map(d => (
-                  <div key={d} className="w-1.5 h-1.5 bg-stone-400 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                  <div
+                    key={d}
+                    style={{
+                      width: 6, height: 6,
+                      background: 'var(--muted)',
+                      borderRadius: '50%',
+                      animation: `typing 1.2s ${d}ms ease-in-out infinite`,
+                    }}
+                  />
                 ))}
               </div>
             </div>
@@ -348,33 +399,88 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
         <div ref={bottomRef} />
       </div>
 
-      <div className="px-3 py-2 bg-stone-50 border-t border-stone-100 shrink-0">
+      {/* Input area */}
+      <div style={{
+        padding: '10px 16px 20px',
+        background: 'var(--panel)',
+        borderTop: '1px solid var(--border)',
+        flexShrink: 0,
+      }}>
+        {/* Reply preview */}
         {respondendo && (
-          <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-xl px-3 py-1.5 mb-2">
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-stone-500">Respondendo</p>
-              <p className="text-xs text-stone-400 truncate">{respondendo.conteudo.slice(0, 50)}</p>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            background: 'var(--panel-strong)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '8px 12px',
+            marginBottom: 8,
+          }}>
+            <Icon name="reply" size={14} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)' }}>Respondendo</p>
+              <p style={{ fontSize: 12, color: 'var(--soft)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {respondendo.conteudo.slice(0, 50)}
+              </p>
             </div>
-            <button onClick={() => setRespondendo(null)} className="text-stone-400 hover:text-stone-600">✕</button>
+            <button
+              onClick={() => setRespondendo(null)}
+              style={{ color: 'var(--muted)', border: 'none', background: 'none', cursor: 'pointer' }}
+            >
+              <Icon name="x" size={16} />
+            </button>
           </div>
         )}
 
         {gravando ? (
-          <div className="flex items-center gap-3 bg-white rounded-2xl px-4 py-2.5 border-2 border-red-300">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shrink-0" />
-            <span className="text-stone-600 font-mono text-sm flex-1">{formatarTempo(tempoGravacao)}</span>
-            <button type="button" onClick={cancelarGravacao} className="text-stone-400 hover:text-stone-600 text-sm px-2">Cancelar</button>
-            <button type="button" onClick={pararEEnviarAudio} disabled={uploadando}
-              className="w-9 h-9 bg-stone-700 rounded-full flex items-center justify-center text-white disabled:opacity-50 shrink-0">
-              {uploadando ? '…' : '✓'}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            background: 'var(--panel-strong)',
+            border: '2px solid var(--danger)',
+            borderRadius: 'var(--radius-pill)',
+            padding: '10px 16px',
+          }}>
+            <div style={{
+              width: 10, height: 10, borderRadius: '50%',
+              background: 'var(--danger)',
+              animation: 'heart-beat 1.2s ease-in-out infinite',
+              flexShrink: 0,
+            }} />
+            <span style={{ color: 'var(--text)', fontFamily: 'monospace', fontSize: 14, flex: 1 }}>
+              {formatarTempo(tempoGravacao)}
+            </span>
+            <button
+              onClick={cancelarGravacao}
+              style={{ fontSize: 13, color: 'var(--muted)', border: 'none', background: 'none', cursor: 'pointer' }}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={pararEEnviarAudio}
+              disabled={uploadando}
+              style={{
+                width: 36, height: 36,
+                background: 'var(--accent)',
+                borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', border: 'none', cursor: 'pointer', flexShrink: 0,
+                opacity: uploadando ? 0.5 : 1,
+              }}
+            >
+              <Icon name="check" size={18} />
             </button>
           </div>
         ) : (
-          <form onSubmit={enviarTexto} className="flex items-center gap-2">
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={enviarFoto} />
-            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadando}
-              className="w-10 h-10 bg-white border border-stone-200 rounded-full flex items-center justify-center text-lg shadow-sm shrink-0 disabled:opacity-50">
-              {uploadando ? '…' : '📷'}
+          <form onSubmit={enviarTexto} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={enviarFoto} />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadando}
+              className="icon-btn"
+              style={{ flexShrink: 0 }}
+            >
+              {uploadando ? '…' : <Icon name="camera" size={18} />}
             </button>
 
             <input
@@ -382,19 +488,47 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
               value={novaMensagem}
               onChange={e => { setNovaMensagem(e.target.value); emitirDigitando(); }}
               placeholder="Mensagem..."
-              className="flex-1 px-4 py-3 bg-white border border-stone-200 rounded-2xl focus:outline-none focus:border-stone-400 text-stone-800 text-sm placeholder-stone-300"
               disabled={enviando}
+              style={{
+                flex: 1, padding: '12px 16px',
+                background: 'var(--panel-strong)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-pill)',
+                fontSize: 14, color: 'var(--text)',
+                outline: 'none', fontFamily: 'inherit',
+              }}
+              onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
             />
 
             {novaMensagem.trim() ? (
-              <button type="submit" disabled={enviando}
-                className="w-11 h-11 bg-stone-700 hover:bg-stone-800 rounded-full flex items-center justify-center text-white shadow-sm disabled:opacity-50 shrink-0 text-base">
-                ➤
+              <button
+                type="submit"
+                disabled={enviando}
+                style={{
+                  width: 44, height: 44,
+                  background: 'var(--accent)',
+                  borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', border: 'none', cursor: 'pointer', flexShrink: 0,
+                  opacity: enviando ? 0.5 : 1,
+                }}
+              >
+                <Icon name="send" size={18} />
               </button>
             ) : (
-              <button type="button" onClick={iniciarGravacao}
-                className="w-11 h-11 bg-stone-700 hover:bg-stone-800 rounded-full flex items-center justify-center text-lg shadow-sm shrink-0">
-                🎙️
+              <button
+                type="button"
+                onClick={iniciarGravacao}
+                style={{
+                  width: 44, height: 44,
+                  background: 'var(--accent)',
+                  borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', border: 'none', cursor: 'pointer', flexShrink: 0,
+                }}
+              >
+                <Icon name="mic" size={18} />
               </button>
             )}
           </form>

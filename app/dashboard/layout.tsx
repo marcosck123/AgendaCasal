@@ -3,13 +3,15 @@
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/ganchos/useAuth';
+import Icon from '@/componentes/Icon';
+import type { IconName } from '@/componentes/Icon';
 
-const ABAS = [
-  { path: '/dashboard',         emoji: '🏠', label: 'Início' },
-  { path: '/dashboard/agenda',  emoji: '📅', label: 'Agenda' },
-  { path: '/dashboard/conversa',emoji: '💬', label: 'Chat' },
-  { path: '/dashboard/nos',     emoji: '💑', label: 'Nós' },
-  { path: '/dashboard/config',  emoji: '⚙️', label: 'Config' },
+const ABAS: { path: string; icon: IconName; label: string }[] = [
+  { path: '/dashboard',          icon: 'home',     label: 'Início'   },
+  { path: '/dashboard/agenda',   icon: 'calendar', label: 'Agenda'   },
+  { path: '/dashboard/conversa', icon: 'chat',     label: 'Conversa' },
+  { path: '/dashboard/nos',      icon: 'heart',    label: 'Nós'      },
+  { path: '/dashboard/config',   icon: 'gear',     label: 'Config'   },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -23,61 +25,50 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-amber-50">
-        <div className="animate-pulse text-stone-500 text-xl">Carregando... 💕</div>
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--bg)',
+        color: 'var(--muted)',
+        fontSize: 'var(--fs-16)',
+      }}>
+        Carregando...
       </div>
     );
   }
 
-  const isChat = pathname === '/dashboard/conversa';
-  const nomeUsuario = user.user_metadata?.nome || user.email?.split('@')[0] || 'Amor';
-
   return (
-    <div className="flex flex-col h-dvh bg-stone-50 overflow-hidden">
-      {/* Header */}
-      {!isChat ? (
-        <header className="bg-white border-b border-stone-100 px-4 py-3 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">💑</span>
-            <h1 className="font-bold text-stone-800 text-base">AgendaCasal</h1>
-          </div>
-          <p className="text-xs text-stone-400">Olá, {nomeUsuario}!</p>
-        </header>
-      ) : (
-        <header className="bg-stone-700 text-white px-4 py-3 flex items-center gap-3 shrink-0">
-          <span className="text-xl">💬</span>
-          <div>
-            <p className="font-bold text-sm">Conversa</p>
-            <p className="text-xs text-stone-300">com {nomeUsuario === 'Marcos' ? 'Ana' : 'Marcos'}</p>
-          </div>
-        </header>
-      )}
-
-      {/* Conteúdo */}
-      <main className="flex-1 overflow-hidden">
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100dvh',
+      background: 'var(--bg)',
+      overflow: 'hidden',
+    }}>
+      {/* Conteúdo principal */}
+      <main style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {children}
       </main>
 
-      {/* Nav inferior */}
-      <nav className="bg-white border-t border-stone-100 shrink-0 safe-area-pb">
-        <div className="flex">
-          {ABAS.map(({ path, emoji, label }) => {
-            const ativo = pathname === path;
-            return (
-              <button
-                key={path}
-                onClick={() => router.push(path)}
-                className={`relative flex-1 flex flex-col items-center gap-0.5 py-2.5 transition-colors ${
-                  ativo ? 'text-stone-800' : 'text-stone-400'
-                }`}
-              >
-                <span className="text-xl">{emoji}</span>
-                <span className="text-[10px] font-medium">{label}</span>
-                {ativo && <div className="absolute bottom-0 w-6 h-0.5 bg-stone-700 rounded-full" />}
-              </button>
-            );
-          })}
-        </div>
+      {/* Tab bar */}
+      <nav className="tabbar">
+        {ABAS.map(({ path, icon, label }) => {
+          const ativo = pathname === path;
+          return (
+            <button
+              key={path}
+              className={`tab${ativo ? ' on' : ''}`}
+              onClick={() => router.push(path)}
+            >
+              <span className="tab-ico">
+                <Icon name={icon} size={23} />
+              </span>
+              <span className="tab-label">{label}</span>
+            </button>
+          );
+        })}
       </nav>
     </div>
   );

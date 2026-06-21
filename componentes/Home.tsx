@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { supabase, Lembrete } from '@/lib/supabase';
 import { useCasalConfig } from '@/ganchos/useCasalConfig';
+import { Heart, ProgressRing } from './UIKit';
+import Icon from './Icon';
 
 const FRASES = [
   'O amor não é olhar um para o outro, mas olhar juntos na mesma direção.',
@@ -19,9 +21,99 @@ const FRASES = [
   'Nada me faz mais feliz do que estar ao seu lado.',
 ];
 
+const MESES = [
+  'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
+];
+
+function saudacao() {
+  const h = new Date().getHours();
+  if (h < 6) return 'Boa madrugada';
+  if (h < 12) return 'Bom dia';
+  if (h < 18) return 'Boa tarde';
+  return 'Boa noite';
+}
+
+function catColor(cat?: string): string {
+  const map: Record<string, string> = {
+    romantico: 'var(--cat-romantico)',
+    aniversario: 'var(--cat-aniversario)',
+    consulta: 'var(--cat-consulta)',
+    viagem: 'var(--cat-viagem)',
+    outro: 'var(--cat-outro)',
+  };
+  return map[cat ?? 'outro'] ?? 'var(--cat-outro)';
+}
+
 interface HomeProps {
   userId: string;
   nomeUsuario: string;
+}
+
+interface LembreteRowProps {
+  l: Lembrete;
+  compact?: boolean;
+  onAgenda?: () => void;
+}
+
+function LembreteRow({ l, compact = false, onAgenda }: LembreteRowProps) {
+  return (
+    <div
+      className="card"
+      onClick={onAgenda}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: compact ? '11px 14px' : '13px 15px',
+        cursor: onAgenda ? 'pointer' : 'default',
+      }}
+    >
+      <div style={{
+        width: 4, alignSelf: 'stretch', borderRadius: 999,
+        background: catColor(l.categoria), minHeight: 30,
+      }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: 14, fontWeight: 500,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>{l.titulo}</div>
+        {l.descricao && !compact && (
+          <div style={{
+            fontSize: 12.5, color: 'var(--muted)',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>{l.descricao}</div>
+        )}
+      </div>
+      {l.hora && (
+        <span style={{ fontSize: 13, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+          {l.hora}
+        </span>
+      )}
+    </div>
+  );
+}
+
+interface LembreteBlocoProps {
+  titulo: string;
+  itens: Lembrete[];
+}
+
+function LembreteBloco({ titulo, itens }: LembreteBlocoProps) {
+  return (
+    <div>
+      <div className="row" style={{ justifyContent: 'space-between', padding: '2px 4px 8px' }}>
+        <span className="eyebrow">{titulo}</span>
+      </div>
+      {itens.length === 0 ? (
+        <div className="card" style={{ padding: 16, color: 'var(--soft)', fontSize: 13, textAlign: 'center' }}>
+          Nada marcado {titulo === 'Hoje' ? 'pra hoje' : 'pra amanhã'}.
+        </div>
+      ) : (
+        <div className="stack" style={{ gap: 9 }}>
+          {itens.map((l) => <LembreteRow key={l.id} l={l} />)}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function Home({ userId, nomeUsuario }: HomeProps) {
@@ -44,14 +136,19 @@ export default function Home({ userId, nomeUsuario }: HomeProps) {
   const dataInicio = config['data_inicio'];
   const diasJuntos = dataInicio
     ? Math.floor((Date.now() - new Date(dataInicio).getTime()) / 86400000)
-    : null;
+    : 0;
 
   const hoje = new Date().toISOString().split('T')[0];
   const amanha = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-  const lembretesHoje = lembretes.filter(l => l.data === hoje);
-  const lembretesAmanha = lembretes.filter(l => l.data === amanha);
 
-  const proximaDataEspecial = lembretes
+  // Visibility filter
+  const lembretesVisiveis = (lems: Lembrete[]) =>
+    lems.filter(r => !r.para_quem || r.para_quem === 'os_dois' || r.criado_por === userId);
+
+  const lembretesHoje = lembretesVisiveis(lembretes.filter(l => l.data === hoje));
+  const lembretesAmanha = lembretesVisiveis(lembretes.filter(l => l.data === amanha));
+
+  const proximaDataEspecial = lembretesVisiveis(lembretes)
     .filter(l => l.categoria === 'aniversario' || l.categoria === 'romantico')
     .sort((a, b) => a.data.localeCompare(b.data))[0];
 
@@ -59,98 +156,96 @@ export default function Home({ userId, nomeUsuario }: HomeProps) {
     ? Math.ceil((new Date(proximaDataEspecial.data).getTime() - Date.now()) / 86400000)
     : null;
 
-  const nomeAmor = config['nome_amor'] || 'Amor';
-
-  const saudacao = () => {
-    const h = new Date().getHours();
-    if (h < 12) return 'Bom dia';
-    if (h < 18) return 'Boa tarde';
-    return 'Boa noite';
-  };
+  const hojeDate = new Date();
+  const hojeStr = `${hojeDate.getDate()} de ${MESES[hojeDate.getMonth()]} de ${hojeDate.getFullYear()}`;
 
   return (
-    <div className="space-y-4 px-3 py-4">
-      {/* Saudação */}
-      <div className="bg-gradient-to-br from-stone-700 to-stone-800 rounded-2xl p-5 text-white">
-        <p className="text-stone-300 text-sm">{saudacao()},</p>
-        <h2 className="text-2xl font-bold mt-0.5">{nomeUsuario} 💕</h2>
-        {diasJuntos !== null && (
-          <div className="mt-3 bg-white/10 rounded-xl px-4 py-2.5 inline-block">
-            <p className="text-xs text-stone-300">Juntos há</p>
-            <p className="text-xl font-bold">{diasJuntos} dias <span className="text-base">🥰</span></p>
-          </div>
-        )}
-      </div>
-
-      {/* Frase do dia */}
-      <div className="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
-        <p className="text-xs font-semibold text-amber-600 mb-1">✨ Frase do dia</p>
-        <p className="text-sm text-stone-700 italic">"{frase}"</p>
-      </div>
-
-      {/* Próxima data especial */}
-      {proximaDataEspecial && diasParaEspecial !== null && diasParaEspecial >= 0 && (
-        <div className="bg-pink-50 border border-pink-100 rounded-2xl px-4 py-3 flex items-center gap-3">
-          <span className="text-2xl">🎉</span>
-          <div>
-            <p className="text-xs font-semibold text-pink-500">Próxima data especial</p>
-            <p className="font-bold text-stone-800">{proximaDataEspecial.titulo}</p>
-            <p className="text-xs text-stone-500">
-              {diasParaEspecial === 0 ? 'Hoje! 🎊' : `em ${diasParaEspecial} dia${diasParaEspecial > 1 ? 's' : ''}`}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Lembretes de hoje */}
-      <div>
-        <p className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-2">Hoje</p>
-        {lembretesHoje.length === 0 ? (
-          <div className="bg-white border border-stone-100 rounded-2xl px-4 py-3 text-sm text-stone-400">
-            Nenhum lembrete para hoje 🌿
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {lembretesHoje.map(l => (
-              <div key={l.id} className="bg-white border border-stone-100 rounded-2xl px-4 py-3 flex items-start gap-3 shadow-sm">
-                <span className="text-lg mt-0.5">
-                  {l.categoria === 'romantico' ? '💕' : l.categoria === 'aniversario' ? '🎂' : l.categoria === 'consulta' ? '🏥' : l.categoria === 'viagem' ? '✈️' : '📌'}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-stone-800 text-sm">{l.titulo}</p>
-                  {l.descricao && <p className="text-xs text-stone-500 mt-0.5 truncate">{l.descricao}</p>}
-                  {l.hora && <p className="text-xs text-stone-400 mt-0.5">⏰ {l.hora}</p>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Lembretes de amanhã */}
-      {lembretesAmanha.length > 0 && (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      {/* App bar */}
+      <div className="appbar">
         <div>
-          <p className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-2">Amanhã</p>
-          <div className="space-y-2">
-            {lembretesAmanha.map(l => (
-              <div key={l.id} className="bg-stone-50 border border-stone-100 rounded-2xl px-4 py-3 flex items-start gap-3">
-                <span className="text-lg mt-0.5">
-                  {l.categoria === 'romantico' ? '💕' : l.categoria === 'aniversario' ? '🎂' : l.categoria === 'consulta' ? '🏥' : l.categoria === 'viagem' ? '✈️' : '📌'}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-stone-600 text-sm">{l.titulo}</p>
-                  {l.hora && <p className="text-xs text-stone-400 mt-0.5">⏰ {l.hora}</p>}
+          <div className="row" style={{ gap: 7 }}>
+            <span className="appbar-title">{saudacao()}, {nomeUsuario}</span>
+            <Heart size={16} beat />
+          </div>
+          <div className="appbar-sub">{hojeStr}</div>
+        </div>
+        <div className="appbar-spacer" />
+      </div>
+
+      {/* Scroll content */}
+      <div className="screen-scroll pad" style={{ paddingBottom: 24 }}>
+        <div className="section-gap screen-enter">
+
+          {/* Juntos há X dias */}
+          <div className="card card-strong" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 18 }}>
+            <ProgressRing value={diasJuntos} max={365} size={72} color="var(--romance)">
+              <Heart size={20} beat />
+            </ProgressRing>
+            <div style={{ flex: 1 }}>
+              <div className="eyebrow">Juntos há</div>
+              <div style={{ fontSize: 32, fontWeight: 600, letterSpacing: '-0.03em', lineHeight: 1.05 }}>
+                {diasJuntos.toLocaleString('pt-BR')}{' '}
+                <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--muted)' }}>dias</span>
+              </div>
+              {dataInicio && (
+                <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>
+                  desde {new Date(dataInicio + 'T00:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Frase do dia */}
+          <div className="card" style={{ display: 'flex', gap: 13, alignItems: 'flex-start' }}>
+            <div style={{ color: 'var(--romance)', marginTop: 1 }}>
+              <Icon name="sparkle" size={20} />
+            </div>
+            <div>
+              <div className="eyebrow" style={{ marginBottom: 6 }}>Frase do dia</div>
+              <p className="serif" style={{ fontSize: 17, lineHeight: 1.5 }}>{frase}</p>
+            </div>
+          </div>
+
+          {/* Próxima data especial */}
+          {proximaDataEspecial && diasParaEspecial !== null && diasParaEspecial >= 0 && (
+            <div className="card" style={{
+              textAlign: 'left', display: 'flex', alignItems: 'center', gap: 14,
+            }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: 14, flexShrink: 0,
+                background: 'var(--romance-soft)', color: 'var(--romance)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
+              }}>
+                {proximaDataEspecial.categoria === 'aniversario' ? '🎂' : '💕'}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div className="eyebrow" style={{ marginBottom: 4 }}>Próxima data especial</div>
+                <div style={{ fontSize: 15, fontWeight: 600 }}>{proximaDataEspecial.titulo}</div>
+                <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+                  {(() => {
+                    const d = new Date(proximaDataEspecial.data + 'T00:00:00');
+                    return `${d.getDate()} de ${MESES[d.getMonth()]}`;
+                  })()}
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 24, fontWeight: 600, color: 'var(--romance)', letterSpacing: '-0.03em' }}>
+                  {diasParaEspecial === 0 ? '🎊' : diasParaEspecial}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--soft)' }}>
+                  {diasParaEspecial === 0 ? 'hoje' : diasParaEspecial === 1 ? 'dia' : 'dias'}
+                </div>
+              </div>
+            </div>
+          )}
 
-      {/* Pensamento para o amor */}
-      <div className="bg-white border border-stone-100 rounded-2xl px-4 py-4 text-center shadow-sm">
-        <p className="text-2xl mb-2">💌</p>
-        <p className="text-sm text-stone-500">Mande uma mensagem para <span className="font-semibold text-stone-700">{nomeAmor}</span></p>
+          {/* Lembretes hoje / amanhã */}
+          <LembreteBloco titulo="Hoje" itens={lembretesHoje} />
+          {lembretesAmanha.length > 0 && (
+            <LembreteBloco titulo="Amanhã" itens={lembretesAmanha} />
+          )}
+        </div>
       </div>
     </div>
   );
