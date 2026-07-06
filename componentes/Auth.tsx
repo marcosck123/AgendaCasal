@@ -125,7 +125,7 @@ export default function Auth() {
           fontSize: 15, fontWeight: 700, letterSpacing: '0.04em',
           boxShadow: 'var(--shadow-sm)',
         }}>
-          M&amp;A
+          ♥
         </div>
         <div>
           <div style={{ fontSize: 27, fontWeight: 600, letterSpacing: '-0.03em', lineHeight: 1, color: 'var(--text)' }}>

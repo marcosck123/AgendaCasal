@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, Lembrete, Categoria, ParaQuem } from '@/lib/supabase';
+import { useCasalContext } from './CasalContext';
 
 interface NovoLembrete {
   titulo: string;
@@ -19,23 +20,26 @@ interface UseRemindersReturn {
   deleteReminder: (id: string) => Promise<{ error: string | null }>;
 }
 
-export function useReminders(userId: string | undefined, casalId?: string): UseRemindersReturn {
+export function useReminders(userId: string | undefined): UseRemindersReturn {
+  const { casal } = useCasalContext();
+  const casalId = casal?.id ?? null;
   const [reminders, setReminders] = useState<Lembrete[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchReminders = useCallback(async () => {
-    if (!userId) return;
+    if (!userId || !casalId) return;
     setLoading(true);
     const { data, error } = await supabase
       .from('lembretes')
       .select('*')
+      .eq('casal_id', casalId)
       .order('data', { ascending: true });
 
     if (!error && data) {
       setReminders(data as Lembrete[]);
     }
     setLoading(false);
-  }, [userId]);
+  }, [userId, casalId]);
 
   useEffect(() => {
     fetchReminders();
@@ -50,10 +54,11 @@ export function useReminders(userId: string | undefined, casalId?: string): UseR
 
   const addReminder = async (lembrete: NovoLembrete): Promise<{ error: string | null }> => {
     if (!userId) return { error: 'Usuário não autenticado' };
+    if (!casalId) return { error: 'Casal não carregado ainda' };
     const { error } = await supabase.from('lembretes').insert({
       ...lembrete,
       criado_por: userId,
-      casal_id: casalId ?? userId,
+      casal_id: casalId,
     });
     if (error) return { error: error.message };
     return { error: null };

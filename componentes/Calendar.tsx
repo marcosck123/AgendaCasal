@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useReminders } from '@/ganchos/useReminders';
+import { useCasalContext } from '@/ganchos/CasalContext';
 import { Lembrete, Categoria, ParaQuem } from '@/lib/supabase';
 import { Sheet } from './UIKit';
 import Icon from './Icon';
@@ -32,11 +33,6 @@ const CATEGORIAS: CatDef[] = [
   { id: 'outro',       label: 'Outro',       varc: '--cat-outro'       },
 ];
 
-const PARA_QUEM_OPS: { value: ParaQuem; label: string }[] = [
-  { value: 'os_dois', label: 'Os dois' },
-  { value: 'so_eu',   label: 'Marcos'  },
-  { value: 'so_amor', label: 'Ana'     },
-];
 
 function catColor(cat?: string) {
   const map: Record<string, string> = {
@@ -61,7 +57,18 @@ function pad(n: number) {
   return String(n).padStart(2, '0');
 }
 
-export default function Calendar({ userId, nomeUsuario: _nomeUsuario }: CalendarProps) {
+export default function Calendar({ userId, nomeUsuario }: CalendarProps) {
+  const { perfil, parceiro, solo } = useCasalContext();
+  const PARA_QUEM_OPS: { value: ParaQuem; label: string }[] = solo
+    ? [
+        { value: 'os_dois', label: 'Os dois' },
+        { value: 'so_eu',   label: perfil?.nome || nomeUsuario },
+      ]
+    : [
+        { value: 'os_dois', label: 'Os dois' },
+        { value: 'so_eu',   label: perfil?.nome || nomeUsuario },
+        { value: 'so_amor', label: parceiro?.nome || 'Seu amor' },
+      ];
   const hoje = new Date();
   const [ym, setYm] = useState({ y: hoje.getFullYear(), m: hoje.getMonth() });
   const [sel, setSel] = useState(isoToday());

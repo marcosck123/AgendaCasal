@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase, Mensagem, Reacao } from '@/lib/supabase';
+import { useCasalContext } from '@/ganchos/CasalContext';
+import { Heart } from './UIKit';
 import Icon from './Icon';
 
 interface ChatProps {
@@ -12,6 +15,9 @@ interface ChatProps {
 const EMOJIS_REACAO = ['❤️', '😂', '😮', '😢', '👏', '🔥'];
 
 export default function Chat({ userId, nomeUsuario }: ChatProps) {
+  const { casal, parceiro, solo, loading: casalLoading } = useCasalContext();
+  const router = useRouter();
+  const casalId = casal?.id ?? null;
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [reacoes, setReacoes] = useState<Record<string, Reacao[]>>({});
   const [novaMensagem, setNovaMensagem] = useState('');
@@ -38,14 +44,16 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
   }, []);
 
   const fetchMensagens = useCallback(async () => {
+    if (!casalId) return;
     const { data } = await supabase
       .from('mensagens')
       .select('*')
+      .eq('casal_id', casalId)
       .order('created_at', { ascending: true })
       .limit(100);
     if (data) setMensagens(data as Mensagem[]);
 
-    const { data: reacs } = await supabase.from('reacoes').select('*');
+    const { data: reacs } = await supabase.from('reacoes').select('*').eq('casal_id', casalId);
     if (reacs) {
       const map: Record<string, Reacao[]> = {};
       (reacs as Reacao[]).forEach(r => {
@@ -55,14 +63,17 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
       setReacoes(map);
     }
     setLoading(false);
-  }, []);
+  }, [casalId]);
 
   useEffect(() => {
     fetchMensagens();
     const ch = supabase
       .channel('chat-realtime')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensagens' }, (payload) => {
-        setMensagens(prev => [...prev, payload.new as Mensagem]);
+        const nova = payload.new as Mensagem;
+        if (!casalId || nova.casal_id === casalId) {
+          setMensagens(prev => [...prev, nova]);
+        }
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reacoes' }, (payload) => {
         const r = payload.new as Reacao;
@@ -84,7 +95,7 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
       .subscribe();
     channelRef.current = ch;
     return () => { supabase.removeChannel(ch); };
-  }, [fetchMensagens, userId]);
+  }, [fetchMensagens, userId, casalId]);
 
   useEffect(() => { scrollToBottom(); }, [mensagens, parceiroDigitando, scrollToBottom]);
 
@@ -105,7 +116,7 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
       conteudo: novaMensagem.trim(),
       enviado_por: userId,
       nome_remetente: nomeUsuario,
-      casal_id: userId,
+      casal_id: casalId,
       tipo: 'texto',
       respondendo_id: respondendo?.id ?? null,
       respondendo_preview: respondendo ? respondendo.conteudo.slice(0, 60) : null,
@@ -129,7 +140,7 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
         conteudo: urlData.publicUrl,
         enviado_por: userId,
         nome_remetente: nomeUsuario,
-        casal_id: userId,
+        casal_id: casalId,
         tipo: 'foto',
       });
     } catch {
@@ -175,7 +186,7 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
         conteudo: urlData.publicUrl,
         enviado_por: userId,
         nome_remetente: nomeUsuario,
-        casal_id: userId,
+        casal_id: casalId,
         tipo: 'audio',
         duracao,
       });
@@ -201,7 +212,7 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
     if (existente) {
       await supabase.from('reacoes').delete().eq('id', existente.id);
     } else {
-      await supabase.from('reacoes').insert({ mensagem_id: mensagemId, usuario_id: userId, emoji });
+      await supabase.from('reacoes').insert({ mensagem_id: mensagemId, usuario_id: userId, emoji, casal_id: casalId });
     }
   };
 
@@ -220,6 +231,36 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
 
   const msgRespondida = (id?: string) => id ? mensagens.find(m => m.id === id) : undefined;
 
+  if (!casalLoading && solo) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)' }}>
+        <div className="appbar">
+          <div>
+            <div className="appbar-title">Conversa</div>
+            <div className="appbar-sub">chat do casal</div>
+          </div>
+        </div>
+        <div style={{
+          flex: 1, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', gap: 16, padding: 32, textAlign: 'center',
+        }}>
+          <Heart size={52} beat />
+          <div>
+            <p style={{ fontSize: 17, fontWeight: 600, letterSpacing: '-0.02em' }}>
+              O chat abre quando vocês se juntarem
+            </p>
+            <p style={{ fontSize: 13.5, color: 'var(--muted)', marginTop: 6, lineHeight: 1.5 }}>
+              Convide alguém especial para dividir este espaço com você.
+            </p>
+          </div>
+          <button className="btn btn-primary" onClick={() => router.push('/dashboard/config')}>
+            <Icon name="heart" size={17} /> Criar convite
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)' }}
@@ -228,7 +269,7 @@ export default function Chat({ userId, nomeUsuario }: ChatProps) {
       {/* Header */}
       <div className="appbar">
         <div>
-          <div className="appbar-title">Conversa</div>
+          <div className="appbar-title">{parceiro?.nome ? `Conversa com ${parceiro.nome}` : 'Conversa'}</div>
           <div className="appbar-sub">chat do casal</div>
         </div>
       </div>

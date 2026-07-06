@@ -2,30 +2,35 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, BucketItem, TimelineItem, HumorDia } from '@/lib/supabase';
+import { useCasalContext } from './CasalContext';
 
 export function useNos(userId: string) {
+  const { casal } = useCasalContext();
+  const casalId = casal?.id ?? null;
   const [bucket, setBucket] = useState<BucketItem[]>([]);
   const [timeline, setTimeline] = useState<TimelineItem[]>([]);
   const [humores, setHumores] = useState<HumorDia[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
+    if (!casalId) return;
     const hoje = new Date().toISOString().split('T')[0];
     const [b, t, h] = await Promise.all([
-      supabase.from('bucket_list').select('*').order('created_at', { ascending: false }),
-      supabase.from('timeline').select('*').order('data', { ascending: false }),
-      supabase.from('humor_dia').select('*').eq('data', hoje),
+      supabase.from('bucket_list').select('*').eq('casal_id', casalId).order('created_at', { ascending: false }),
+      supabase.from('timeline').select('*').eq('casal_id', casalId).order('data', { ascending: false }),
+      supabase.from('humor_dia').select('*').eq('casal_id', casalId).eq('data', hoje),
     ]);
     if (b.data) setBucket(b.data as BucketItem[]);
     if (t.data) setTimeline(t.data as TimelineItem[]);
     if (h.data) setHumores(h.data as HumorDia[]);
     setLoading(false);
-  }, []);
+  }, [casalId]);
 
   useEffect(() => { fetch(); }, [fetch]);
 
   const addBucket = async (titulo: string, descricao?: string) => {
-    const { data } = await supabase.from('bucket_list').insert({ titulo, descricao, concluido: false, criado_por: userId }).select().single();
+    if (!casalId) return;
+    const { data } = await supabase.from('bucket_list').insert({ titulo, descricao, concluido: false, criado_por: userId, casal_id: casalId }).select().single();
     if (data) setBucket(prev => [data as BucketItem, ...prev]);
   };
 
@@ -40,7 +45,8 @@ export function useNos(userId: string) {
   };
 
   const addTimeline = async (titulo: string, data: string, descricao?: string, foto_url?: string) => {
-    const { data: row } = await supabase.from('timeline').insert({ titulo, data, descricao, foto_url, criado_por: userId }).select().single();
+    if (!casalId) return;
+    const { data: row } = await supabase.from('timeline').insert({ titulo, data, descricao, foto_url, criado_por: userId, casal_id: casalId }).select().single();
     if (row) setTimeline(prev => [row as TimelineItem, ...prev].sort((a, b) => b.data.localeCompare(a.data)));
   };
 
@@ -50,11 +56,12 @@ export function useNos(userId: string) {
   };
 
   const registrarHumor = async (emoji: string, texto?: string) => {
+    if (!casalId) return;
     const hoje = new Date().toISOString().split('T')[0];
-    await supabase.from('humor_dia').upsert({ usuario_id: userId, emoji, texto, data: hoje }, { onConflict: 'usuario_id,data' });
+    await supabase.from('humor_dia').upsert({ usuario_id: userId, emoji, texto, data: hoje, casal_id: casalId }, { onConflict: 'usuario_id,data' });
     setHumores(prev => {
       const filtered = prev.filter(h => h.usuario_id !== userId);
-      return [...filtered, { id: '', usuario_id: userId, emoji, texto, data: hoje, created_at: '' }];
+      return [...filtered, { id: '', usuario_id: userId, emoji, texto, data: hoje, created_at: '', casal_id: casalId }];
     });
   };
 

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useNos } from '@/ganchos/useNos';
+import { useCasalContext } from '@/ganchos/CasalContext';
 import { ProgressRing, Sheet } from './UIKit';
 import Icon from './Icon';
 
@@ -21,6 +22,7 @@ const HUMOR_OPCOES = [
 ];
 
 export default function Nos({ userId }: NosProps) {
+  const { parceiro, solo } = useCasalContext();
   const { bucket, timeline, humores, loading, addBucket, toggleBucket, deleteBucket, addTimeline, deleteTimeline, registrarHumor } = useNos(userId);
   const [sub, setSub] = useState<'lista' | 'momentos' | 'humor'>('lista');
   const [novoBucket, setNovoBucket] = useState('');
@@ -83,8 +85,8 @@ export default function Nos({ userId }: NosProps) {
                   <span style={{ fontSize: 13, fontWeight: 700 }}>{feitos}/{bucket.length}</span>
                 </ProgressRing>
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 600 }}>Lista do casal</div>
-                  <div style={{ fontSize: 13, color: 'var(--muted)' }}>coisas pra viver juntos</div>
+                  <div style={{ fontSize: 15, fontWeight: 600 }}>{solo ? 'Minha lista' : 'Lista do casal'}</div>
+                  <div style={{ fontSize: 13, color: 'var(--muted)' }}>{solo ? 'sonhos pra viver' : 'coisas pra viver juntos'}</div>
                 </div>
               </div>
 
@@ -262,19 +264,19 @@ export default function Nos({ userId }: NosProps) {
           {sub === 'humor' && (
             <>
               <div className="card card-strong" style={{ display: 'flex', gap: 12, padding: 18 }}>
-                {['marcos', 'ana'].map(u => {
-                  const h = u === userId
+                {(solo ? ['eu'] : ['eu', 'parceiro']).map(u => {
+                  const h = u === 'eu'
                     ? (meuHumor ? { emoji: meuHumor.emoji, label: HUMOR_OPCOES.find(o => o.emoji === meuHumor.emoji)?.label ?? '' } : { emoji: '😐', label: 'Normal' })
                     : (outroHumor ? { emoji: outroHumor.emoji, label: HUMOR_OPCOES.find(o => o.emoji === outroHumor.emoji)?.label ?? '' } : { emoji: '❓', label: 'Sem registro' });
                   return (
                     <div key={u} style={{
                       flex: 1, textAlign: 'center', padding: '6px 4px',
                       borderRadius: 16,
-                      background: u === userId ? 'var(--accent-soft)' : 'transparent',
+                      background: u === 'eu' ? 'var(--accent-soft)' : 'transparent',
                     }}>
                       <div style={{ fontSize: 44, lineHeight: 1.1 }}>{h.emoji}</div>
                       <div style={{ fontSize: 14, fontWeight: 600, marginTop: 6 }}>
-                        {u === userId ? 'Você' : 'Seu amor'}
+                        {u === 'eu' ? 'Você' : (parceiro?.nome || 'Seu amor')}
                       </div>
                       <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>{h.label}</div>
                     </div>
@@ -313,7 +315,7 @@ export default function Nos({ userId }: NosProps) {
                   })}
                 </div>
                 <p style={{ fontSize: 12, color: 'var(--soft)', marginTop: 14, lineHeight: 1.5 }}>
-                  Seu amor vê seu humor na hora. Um registro por dia.
+                  {solo ? 'Um registro por dia, só seu por enquanto.' : 'Seu amor vê seu humor na hora. Um registro por dia.'}
                 </p>
               </div>
             </>

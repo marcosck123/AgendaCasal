@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase, Lembrete } from '@/lib/supabase';
 import { useCasalConfig } from '@/ganchos/useCasalConfig';
+import { useCasalContext, iniciaisCasal } from '@/ganchos/CasalContext';
 import { Heart, ProgressRing } from './UIKit';
 import Icon from './Icon';
 
@@ -118,23 +120,31 @@ function LembreteBloco({ titulo, itens }: LembreteBlocoProps) {
 
 export default function Home({ userId, nomeUsuario }: HomeProps) {
   const { config } = useCasalConfig();
+  const { perfil, parceiro, solo, casal } = useCasalContext();
+  const router = useRouter();
   const [lembretes, setLembretes] = useState<Lembrete[]>([]);
   const [frase] = useState(() => FRASES[new Date().getDate() % FRASES.length]);
 
+  const casalId = casal?.id ?? null;
+
   useEffect(() => {
+    if (!casalId) return;
     const hoje = new Date().toISOString().split('T')[0];
     const amanha = new Date(Date.now() + 86400000).toISOString().split('T')[0];
     supabase
       .from('lembretes')
       .select('*')
+      .eq('casal_id', casalId)
       .in('data', [hoje, amanha])
       .order('data')
       .order('hora', { nullsFirst: false })
       .then(({ data }) => { if (data) setLembretes(data as Lembrete[]); });
-  }, []);
+  }, [casalId]);
 
-  const dataInicio = config['data_inicio'] || '2024-01-29';
-  const diasJuntos = Math.floor((Date.now() - new Date(dataInicio + 'T00:00:00').getTime()) / 86400000);
+  const dataInicio = config['data_inicio'] || '';
+  const diasJuntos = dataInicio
+    ? Math.floor((Date.now() - new Date(dataInicio + 'T00:00:00').getTime()) / 86400000)
+    : 0;
 
   const hoje = new Date().toISOString().split('T')[0];
   const amanha = new Date(Date.now() + 86400000).toISOString().split('T')[0];
@@ -169,13 +179,44 @@ export default function Home({ userId, nomeUsuario }: HomeProps) {
           <div className="appbar-sub">{hojeStr}</div>
         </div>
         <div className="appbar-spacer" />
+        <div style={{
+          width: 40, height: 40, borderRadius: 13,
+          background: 'linear-gradient(135deg, var(--brand-grad-start), var(--brand-grad-end))',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#fff7f0', fontSize: 13, fontWeight: 700, letterSpacing: '0.03em',
+        }}>
+          {iniciaisCasal(perfil?.nome ?? nomeUsuario, parceiro?.nome)}
+        </div>
       </div>
 
       {/* Scroll content */}
       <div className="screen-scroll pad" style={{ paddingBottom: 24 }}>
         <div className="section-gap screen-enter">
 
-          {/* Juntos há X dias */}
+          {/* Solo: convite / Casal: Juntos há X dias */}
+          {solo ? (
+          <div
+            className="card card-strong"
+            onClick={() => router.push('/dashboard/config')}
+            style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 18, cursor: 'pointer' }}
+          >
+            <div style={{
+              width: 56, height: 56, borderRadius: 18, flexShrink: 0,
+              background: 'var(--romance-soft)', color: 'var(--romance)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26,
+            }}>💌</div>
+            <div style={{ flex: 1 }}>
+              <div className="eyebrow">Seu espaço</div>
+              <div style={{ fontSize: 17, fontWeight: 600, letterSpacing: '-0.02em' }}>
+                Convide alguém especial 💌
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>
+                Crie um convite e transformem isso aqui em &ldquo;Nosso&rdquo;.
+              </div>
+            </div>
+            <Icon name="chevronR" size={18} />
+          </div>
+          ) : (
           <div className="card card-strong" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 18 }}>
             <ProgressRing value={diasJuntos} max={365} size={72} color="var(--romance)">
               <Heart size={20} beat />
@@ -193,6 +234,7 @@ export default function Home({ userId, nomeUsuario }: HomeProps) {
               )}
             </div>
           </div>
+          )}
 
           {/* Frase do dia */}
           <div className="card" style={{ display: 'flex', gap: 13, alignItems: 'flex-start' }}>

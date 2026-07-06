@@ -29,7 +29,7 @@ export default function Home() {
           color: '#fff7f0', fontSize: 22, fontWeight: 700, letterSpacing: '0.04em',
           boxShadow: '0 8px 32px color-mix(in srgb, var(--brand-grad-end) 35%, transparent)',
           animation: 'heart-beat 1.8s ease-in-out infinite',
-        }}>M&amp;A</div>
+        }}>♥</div>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: '-0.03em', lineHeight: 1 }}>Nosso</div>
           <div style={{ fontSize: 13, color: 'var(--soft)', marginTop: 5 }}>o espaço de vocês dois</div>

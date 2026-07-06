@@ -13,6 +13,33 @@ export type UserProfile = {
   created_at: string;
 };
 
+export type Perfil = {
+  id: string;
+  nome: string;
+  email: string | null;
+  codigo_amigo: string;
+  casal_id: string | null;
+  created_at: string;
+};
+
+export type Casal = {
+  id: string;
+  membro_1: string;
+  membro_2: string | null;
+  data_inicio: string | null;
+  created_at: string;
+};
+
+export type Convite = {
+  id: string;
+  codigo: string;
+  criado_por: string;
+  casal_id: string;
+  usado_por: string | null;
+  expira_em: string;
+  created_at: string;
+};
+
 export type Categoria = 'romantico' | 'aniversario' | 'consulta' | 'viagem' | 'outro';
 export type ParaQuem = 'os_dois' | 'so_eu' | 'so_amor';
 
@@ -52,6 +79,7 @@ export type Reacao = {
 
 export type BucketItem = {
   id: string;
+  casal_id?: string | null;
   titulo: string;
   descricao?: string;
   concluido: boolean;
@@ -61,6 +89,7 @@ export type BucketItem = {
 
 export type TimelineItem = {
   id: string;
+  casal_id?: string | null;
   titulo: string;
   descricao?: string;
   data: string;
@@ -71,6 +100,7 @@ export type TimelineItem = {
 
 export type HumorDia = {
   id: string;
+  casal_id?: string | null;
   usuario_id: string;
   emoji: string;
   texto?: string;
@@ -80,6 +110,7 @@ export type HumorDia = {
 
 export type CasalConfig = {
   id: string;
+  casal_id?: string | null;
   chave: string;
   valor: string;
   updated_at: string;
