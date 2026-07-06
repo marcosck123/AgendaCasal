@@ -78,6 +78,8 @@ export default function Calendar({ userId, nomeUsuario: _nomeUsuario }: Calendar
   const setF = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
   const [repetir, setRepetir] = useState(false);
   const [dataFim, setDataFim] = useState(isoToday());
+  // 0=Dom 1=Seg 2=Ter 3=Qua 4=Qui 5=Sex 6=Sáb — dias excluídos
+  const [diasExcluidos, setDiasExcluidos] = useState<number[]>([]);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState('');
 
@@ -116,7 +118,9 @@ export default function Calendar({ userId, nomeUsuario: _nomeUsuario }: Calendar
       const cur = new Date(form.data + 'T00:00:00');
       const fim = new Date(dataFim + 'T00:00:00');
       while (cur <= fim) {
-        datas.push(cur.toISOString().split('T')[0]);
+        if (!diasExcluidos.includes(cur.getDay())) {
+          datas.push(cur.toISOString().split('T')[0]);
+        }
         cur.setDate(cur.getDate() + 1);
       }
     } else {
@@ -141,6 +145,7 @@ export default function Calendar({ userId, nomeUsuario: _nomeUsuario }: Calendar
     } else {
       setForm({ titulo: '', descricao: '', hora: '', categoria: 'romantico', paraQuem: 'os_dois', data: sel });
       setRepetir(false);
+      setDiasExcluidos([]);
       setSheet('dia');
     }
     setEnviando(false);
@@ -436,11 +441,41 @@ export default function Calendar({ userId, nomeUsuario: _nomeUsuario }: Calendar
                   <label className="field-label">Hora <span style={{ color: 'var(--soft)' }}>(opc.)</span></label>
                   <input className="input" type="time" value={form.hora} onChange={e => setF('hora', e.target.value)} />
                 </div>
+                {/* Dias da semana para excluir */}
+                <div style={{ marginTop: 12 }}>
+                  <label className="field-label" style={{ marginBottom: 8 }}>Excluir dias da semana</label>
+                  <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                    {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map((d, i) => {
+                      const on = diasExcluidos.includes(i);
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setDiasExcluidos(prev =>
+                            on ? prev.filter(x => x !== i) : [...prev, i]
+                          )}
+                          style={{
+                            width: 40, height: 36, borderRadius: 10, fontSize: 12, fontWeight: 600,
+                            border: '1px solid ' + (on ? 'var(--danger)' : 'var(--border)'),
+                            background: on ? 'color-mix(in srgb, var(--danger) 12%, transparent)' : 'var(--panel)',
+                            color: on ? 'var(--danger)' : 'var(--muted)',
+                            textDecoration: on ? 'line-through' : 'none',
+                            transition: 'all var(--dur-base)',
+                          }}
+                        >{d}</button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {form.data && dataFim && dataFim >= form.data && (
                   <p style={{ fontSize: 12, color: 'var(--accent)', marginTop: 10, fontWeight: 500 }}>
                     {(() => {
-                      const dias = Math.round((new Date(dataFim + 'T00:00:00').getTime() - new Date(form.data + 'T00:00:00').getTime()) / 86400000) + 1;
-                      return `Vai criar ${dias} lembrete${dias > 1 ? 's' : ''} (um por dia)`;
+                      const cur = new Date(form.data + 'T00:00:00');
+                      const fim = new Date(dataFim + 'T00:00:00');
+                      let count = 0;
+                      while (cur <= fim) { if (!diasExcluidos.includes(cur.getDay())) count++; cur.setDate(cur.getDate() + 1); }
+                      return count > 0 ? `Vai criar ${count} lembrete${count > 1 ? 's' : ''}` : 'Nenhum dia selecionado';
                     })()}
                   </p>
                 )}
