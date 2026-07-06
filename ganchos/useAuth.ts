@@ -10,6 +10,8 @@ interface AuthState {
   login: (email: string, password: string) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
   register: (email: string, password: string, nome: string) => Promise<{ error: string | null }>;
+  verifyCode: (email: string, code: string) => Promise<{ error: string | null }>;
+  resendCode: (email: string) => Promise<{ error: string | null }>;
 }
 
 export function useAuth(): AuthState {
@@ -72,5 +74,22 @@ export function useAuth(): AuthState {
     return { error: null };
   };
 
-  return { user, loading, login, logout, register };
+  // Valida o código de 6 dígitos recebido por e-mail no cadastro
+  const verifyCode = async (email: string, code: string): Promise<{ error: string | null }> => {
+    const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'signup' });
+    if (error) {
+      // fallback: código de login (caso a conta já esteja confirmada)
+      const { error: e2 } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' });
+      if (e2) return { error: 'Código inválido ou expirado. Tente reenviar.' };
+    }
+    return { error: null };
+  };
+
+  const resendCode = async (email: string): Promise<{ error: string | null }> => {
+    const { error } = await supabase.auth.resend({ type: 'signup', email });
+    if (error) return { error: error.message };
+    return { error: null };
+  };
+
+  return { user, loading, login, logout, register, verifyCode, resendCode };
 }
