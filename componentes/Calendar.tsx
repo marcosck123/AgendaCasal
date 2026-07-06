@@ -76,6 +76,8 @@ export default function Calendar({ userId, nomeUsuario: _nomeUsuario }: Calendar
     data: isoToday(),
   });
   const setF = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
+  const [repetir, setRepetir] = useState(false);
+  const [dataFim, setDataFim] = useState(isoToday());
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState('');
 
@@ -108,18 +110,37 @@ export default function Calendar({ userId, nomeUsuario: _nomeUsuario }: Calendar
     if (!form.titulo.trim()) return;
     setEnviando(true);
     setErro('');
-    const { error } = await addReminder({
-      titulo: form.titulo,
-      descricao: form.descricao,
-      data: form.data,
-      hora: form.hora || undefined,
-      categoria: form.categoria,
-      para_quem: form.paraQuem,
-    });
-    if (error) {
-      setErro(error);
+
+    const datas: string[] = [];
+    if (repetir && dataFim >= form.data) {
+      const cur = new Date(form.data + 'T00:00:00');
+      const fim = new Date(dataFim + 'T00:00:00');
+      while (cur <= fim) {
+        datas.push(cur.toISOString().split('T')[0]);
+        cur.setDate(cur.getDate() + 1);
+      }
+    } else {
+      datas.push(form.data);
+    }
+
+    let lastError = '';
+    for (const d of datas) {
+      const { error } = await addReminder({
+        titulo: form.titulo,
+        descricao: form.descricao,
+        data: d,
+        hora: form.hora || undefined,
+        categoria: form.categoria,
+        para_quem: form.paraQuem,
+      });
+      if (error) { lastError = error; break; }
+    }
+
+    if (lastError) {
+      setErro(lastError);
     } else {
       setForm({ titulo: '', descricao: '', hora: '', categoria: 'romantico', paraQuem: 'os_dois', data: sel });
+      setRepetir(false);
       setSheet('dia');
     }
     setEnviando(false);
@@ -374,16 +395,57 @@ export default function Calendar({ userId, nomeUsuario: _nomeUsuario }: Calendar
                 onChange={e => setF('descricao', e.target.value)}
               />
             </div>
-            <div className="row" style={{ gap: 12 }}>
-              <div style={{ flex: 1 }}>
-                <label className="field-label">Data</label>
-                <input className="input" type="date" value={form.data} onChange={e => setF('data', e.target.value)} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label className="field-label">Hora <span style={{ color: 'var(--soft)' }}>(opc.)</span></label>
-                <input className="input" type="time" value={form.hora} onChange={e => setF('hora', e.target.value)} />
-              </div>
+            {/* Toggle repetir */}
+            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <span className="field-label" style={{ marginBottom: 0 }}>Repetir por período</span>
+              <button
+                type="button"
+                className={'toggle' + (repetir ? ' on' : '')}
+                onClick={() => setRepetir(r => !r)}
+                aria-label="Repetir por período"
+              >
+                <span className="slider" />
+              </button>
             </div>
+
+            {!repetir ? (
+              <div className="row" style={{ gap: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <label className="field-label">Data</label>
+                  <input className="input" type="date" value={form.data} onChange={e => setF('data', e.target.value)} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label className="field-label">Hora <span style={{ color: 'var(--soft)' }}>(opc.)</span></label>
+                  <input className="input" type="time" value={form.hora} onChange={e => setF('hora', e.target.value)} />
+                </div>
+              </div>
+            ) : (
+              <div className="card" style={{ padding: 14, background: 'var(--accent-soft)', borderColor: 'var(--accent)' }}>
+                <div className="row" style={{ gap: 12, marginBottom: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <label className="field-label">De</label>
+                    <input className="input" type="date" value={form.data} onChange={e => setF('data', e.target.value)} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label className="field-label">Até</label>
+                    <input className="input" type="date" value={dataFim} min={form.data}
+                      onChange={e => setDataFim(e.target.value)} />
+                  </div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label className="field-label">Hora <span style={{ color: 'var(--soft)' }}>(opc.)</span></label>
+                  <input className="input" type="time" value={form.hora} onChange={e => setF('hora', e.target.value)} />
+                </div>
+                {form.data && dataFim && dataFim >= form.data && (
+                  <p style={{ fontSize: 12, color: 'var(--accent)', marginTop: 10, fontWeight: 500 }}>
+                    {(() => {
+                      const dias = Math.round((new Date(dataFim + 'T00:00:00').getTime() - new Date(form.data + 'T00:00:00').getTime()) / 86400000) + 1;
+                      return `Vai criar ${dias} lembrete${dias > 1 ? 's' : ''} (um por dia)`;
+                    })()}
+                  </p>
+                )}
+              </div>
+            )}
             <div>
               <label className="field-label">Categoria</label>
               <div className="row" style={{ flexWrap: 'wrap', gap: 7 }}>
