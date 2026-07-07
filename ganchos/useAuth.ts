@@ -51,7 +51,7 @@ export function useAuth(): AuthState {
     password: string,
     nome: string
   ): Promise<{ error: string | null }> => {
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -59,18 +59,16 @@ export function useAuth(): AuthState {
       },
     });
 
-    if (error) return { error: error.message };
-
-    // Create user profile in casal_info table
-    if (data.user) {
-      const { error: profileError } = await supabase.from('casal_info').insert({
-        id: data.user.id,
-        email,
-        nome,
-      });
-      if (profileError) console.error('Erro ao criar perfil:', profileError.message);
+    if (error) {
+      const msg = error.message || (error as { error_description?: string }).error_description || '';
+      // Mensagem amigável para o erro clássico de SMTP
+      if (/confirmation email|sending|smtp/i.test(msg) || !msg) {
+        return { error: 'Não consegui enviar o e-mail de confirmação. Verifique a configuração de SMTP no Supabase.' };
+      }
+      return { error: msg };
     }
 
+    // O perfil e o casal são criados automaticamente pelo trigger no banco.
     return { error: null };
   };
 
