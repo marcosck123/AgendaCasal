@@ -9,7 +9,7 @@ interface AuthState {
   loading: boolean;
   login: (email: string, password: string) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
-  register: (email: string, password: string, nome: string) => Promise<{ error: string | null }>;
+  register: (email: string, password: string, nome: string) => Promise<{ error: string | null; precisaConfirmar: boolean }>;
   verifyCode: (email: string, code: string) => Promise<{ error: string | null }>;
   resendCode: (email: string) => Promise<{ error: string | null }>;
 }
@@ -50,8 +50,8 @@ export function useAuth(): AuthState {
     email: string,
     password: string,
     nome: string
-  ): Promise<{ error: string | null }> => {
-    const { error } = await supabase.auth.signUp({
+  ): Promise<{ error: string | null; precisaConfirmar: boolean }> => {
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -63,13 +63,16 @@ export function useAuth(): AuthState {
       const msg = error.message || (error as { error_description?: string }).error_description || '';
       // Mensagem amigável para o erro clássico de SMTP
       if (/confirmation email|sending|smtp/i.test(msg) || !msg) {
-        return { error: 'Não consegui enviar o e-mail de confirmação. Verifique a configuração de SMTP no Supabase.' };
+        return { error: 'Não consegui enviar o e-mail de confirmação. Verifique a configuração de SMTP no Supabase.', precisaConfirmar: false };
       }
-      return { error: msg };
+      return { error: msg, precisaConfirmar: false };
     }
 
     // O perfil e o casal são criados automaticamente pelo trigger no banco.
-    return { error: null };
+    // Se a confirmação de e-mail estiver desligada, já vem uma sessão ativa
+    // e o onAuthStateChange loga direto — não precisa da tela de código.
+    const precisaConfirmar = !data.session;
+    return { error: null, precisaConfirmar };
   };
 
   // Valida o código de 6 dígitos recebido por e-mail no cadastro

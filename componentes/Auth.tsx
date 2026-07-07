@@ -32,14 +32,15 @@ export default function Auth() {
         setCarregando(false);
         return;
       }
-      const { error } = await register(email, senha, nome);
+      const { error, precisaConfirmar } = await register(email, senha, nome);
       if (error) {
         setErro(error);
-      } else {
+      } else if (precisaConfirmar) {
         setModo('codigo');
         setSucesso('Enviamos um código de 6 dígitos para ' + email);
         setTimeout(() => codeRefs.current[0]?.focus(), 100);
       }
+      // Se não precisa confirmar, o onAuthStateChange já loga e redireciona.
     }
 
     setCarregando(false);
