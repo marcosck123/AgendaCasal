@@ -9,11 +9,11 @@ export default function Auth() {
   const [senha, setSenha] = useState('');
   const [verSenha, setVerSenha] = useState(false);
   const [nome, setNome] = useState('');
-  const [codigo, setCodigo] = useState(['', '', '', '', '', '']);
+  const [codigo, setCodigo] = useState('');
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState('');
   const [carregando, setCarregando] = useState(false);
-  const codeRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const codeInputRef = useRef<HTMLInputElement | null>(null);
 
   const { login, register, verifyCode, resendCode } = useAuth();
 
@@ -37,8 +37,8 @@ export default function Auth() {
         setErro(error);
       } else if (precisaConfirmar) {
         setModo('codigo');
-        setSucesso('Enviamos um código de 6 dígitos para ' + email);
-        setTimeout(() => codeRefs.current[0]?.focus(), 100);
+        setSucesso('Enviamos um código de confirmação para ' + email);
+        setTimeout(() => codeInputRef.current?.focus(), 100);
       }
       // Se não precisa confirmar, o onAuthStateChange já loga e redireciona.
     }
@@ -46,37 +46,16 @@ export default function Auth() {
     setCarregando(false);
   };
 
-  const setDigito = (i: number, v: string) => {
-    const only = v.replace(/\D/g, '');
-    // Colou o código inteiro
-    if (only.length > 1) {
-      const arr = only.slice(0, 6).split('');
-      const next = ['', '', '', '', '', ''];
-      arr.forEach((d, j) => { next[j] = d; });
-      setCodigo(next);
-      codeRefs.current[Math.min(arr.length, 5)]?.focus();
-      if (arr.length === 6) validar(next.join(''));
-      return;
-    }
-    const next = [...codigo];
-    next[i] = only;
-    setCodigo(next);
-    if (only && i < 5) codeRefs.current[i + 1]?.focus();
-    if (only && i === 5 && next.every(d => d)) validar(next.join(''));
-  };
-
-  const keyDigito = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !codigo[i] && i > 0) codeRefs.current[i - 1]?.focus();
-  };
-
   const validar = async (code: string) => {
+    const limpo = code.replace(/\D/g, '');
+    if (limpo.length < 6) return;
     setErro('');
     setCarregando(true);
-    const { error } = await verifyCode(email, code);
+    const { error } = await verifyCode(email, limpo);
     if (error) {
       setErro(error);
-      setCodigo(['', '', '', '', '', '']);
-      codeRefs.current[0]?.focus();
+      setCodigo('');
+      codeInputRef.current?.focus();
     }
     // se validou, onAuthStateChange loga sozinho e redireciona
     setCarregando(false);
@@ -145,30 +124,25 @@ export default function Auth() {
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 17, fontWeight: 600 }}>Confirme seu e-mail</div>
               <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>
-                Digite o código de 6 dígitos enviado para<br /><b style={{ color: 'var(--text)' }}>{email}</b>
+                Digite o código enviado para<br /><b style={{ color: 'var(--text)' }}>{email}</b>
               </div>
             </div>
 
-            <div className="row" style={{ gap: 8, justifyContent: 'center' }}>
-              {codigo.map((d, i) => (
-                <input
-                  key={i}
-                  ref={el => { codeRefs.current[i] = el; }}
-                  className="input"
-                  inputMode="numeric"
-                  autoComplete={i === 0 ? 'one-time-code' : 'off'}
-                  maxLength={6}
-                  value={d}
-                  onChange={e => setDigito(i, e.target.value)}
-                  onKeyDown={e => keyDigito(i, e)}
-                  style={{
-                    width: 46, height: 54, textAlign: 'center',
-                    fontSize: 22, fontWeight: 600, padding: 0,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
-                />
-              ))}
-            </div>
+            <input
+              ref={codeInputRef}
+              className="input"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="Cole o código aqui"
+              value={codigo}
+              onChange={e => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 10))}
+              onKeyDown={e => { if (e.key === 'Enter') validar(codigo); }}
+              style={{
+                textAlign: 'center', height: 56,
+                fontSize: 26, fontWeight: 700,
+                letterSpacing: '0.3em', fontVariantNumeric: 'tabular-nums',
+              }}
+            />
 
             {erro && (
               <div style={{
@@ -189,9 +163,9 @@ export default function Auth() {
 
             <button
               className="btn btn-primary btn-block"
-              disabled={carregando || codigo.some(d => !d)}
-              style={{ opacity: carregando || codigo.some(d => !d) ? 0.6 : 1 }}
-              onClick={() => validar(codigo.join(''))}
+              disabled={carregando || codigo.length < 6}
+              style={{ opacity: carregando || codigo.length < 6 ? 0.6 : 1 }}
+              onClick={() => validar(codigo)}
             >
               {carregando ? 'Validando...' : 'Confirmar'}
             </button>
